@@ -5,12 +5,14 @@ import basis as b
 import elliptic as ell
 import fluxes as fx
 import timestep as ts
+import matplotlib.animation as animation
+# from scipy.interpolate import interp2d
 
 import matplotlib.pyplot as plt
 
 # Parameters
 order = 8
-res_x, res_y = 50, 50
+res_x, res_y = 25, 25
 
 # Flags
 plot_IC = True
@@ -28,10 +30,11 @@ lows = np.array([-L / 2.0, -L / 2.0])
 highs = np.array([L / 2.0, L / 2.0])
 resolutions = np.array([res_x, res_y])
 resolutions_ghosts = np.array([res_x + 2, res_y + 2])
-grids = g.Grid2D(basis=basis, lows=lows, highs=highs, resolutions=resolutions)
+grids = g.Grid2D(basis=basis, lows=lows, highs=highs, resolutions=resolutions, linspace=True)
 
 # Time info
-final_time = 2.0 * np.pi
+final_time = 6.0 * np.pi
+write_time = 0.25
 
 # Initialize variable
 source = g.Scalar(resolutions=resolutions_ghosts, orders=orders)
@@ -81,6 +84,24 @@ if plot_IC:
     plt.title('y-component')
     plt.colorbar()
 
+    # Interpolate 2D
+    XE = np.tensordot(grids.x.arr_lin, np.ones_like(grids.y.arr_lin), axes=0)
+    YE = np.tensordot(np.ones_like(grids.x.arr_lin), grids.y.arr_lin, axes=0)
+    # fourier interpolation
+    spectrum_x = grids.fourier_transform(function=velocity.arr[0, 1:-1, :, 1:-1, :])
+    spectrum_y = grids.fourier_transform(function=velocity.arr[1, 1:-1, :, 1:-1, :])
+    UE = grids.inverse_transform_linspace(spectrum=spectrum_x)
+    VE = grids.inverse_transform_linspace(spectrum=spectrum_y)
+    V = np.sqrt(UE.get() ** 2.0 + VE.get() ** 2.0).transpose()
+
+    start_points = np.array([np.random.random_sample(300) * L - L / 2,
+                             np.random.random_sample(300) * L - L / 2]).transpose()
+    # start_points = np.array([np.linspace(-L/2, L/2, num=100),
+    #                          np.linspace(-L/2, L/2, num=100)]).transpose()
+    plt.figure()
+    plt.streamplot(YE, XE,
+                   UE.get().transpose(), VE.get().transpose(),
+                   density=2.25, start_points=start_points, color=V)
     plt.show()
 
 # Test elliptic class and pressure solve
@@ -98,7 +119,8 @@ plt.show()
 
 # Try solution to some time
 dg_flux = fx.DGFlux(resolutions=resolutions_ghosts, orders=orders)
-stepper = ts.Stepper(time_order=3, space_order=order, write_time=0.1, final_time=final_time)
+stepper = ts.Stepper(time_order=3, space_order=order,
+                     write_time=write_time, final_time=final_time)
 
 print('\nBeginning main loop...')
 stepper.main_loop(vector=velocity, basis=basis, elliptic=elliptic, grids=grids, dg_flux=dg_flux)
@@ -129,7 +151,67 @@ if plot_IC:
     plt.ylabel('y')
     plt.title('Pressure')
 
-    plt.show()
+    # plt.show()
+
+# ax.axis('equal')
+# figv, axv = plt.subplots()
+#
+# maxs = [np.amax(step) for step in stepper.saved_array]
+# mins = [np.amin(step) for step in stepper.saved_array]
+# all_max = np.amax(maxs)
+# all_min = np.amin(mins)
+# cb = np.linspace(all_min, all_max, num=100)
+
+#
+# def animate_velocity(idx):
+#     axv.collections, axv.patches = [], []
+#     spectrum_x = grids.fourier_transform(function=cp.asarray(
+#         stepper.saved_array[idx][0, 1:-1, :, 1:-1, :]))
+#     spectrum_y = grids.fourier_transform(function=cp.asarray(
+#         stepper.saved_array[idx][1, 1:-1, :, 1:-1, :]))
+#     UE = grids.inverse_transform_linspace(spectrum=spectrum_x)
+#     VE = grids.inverse_transform_linspace(spectrum=spectrum_y)
+#     V = np.sqrt(UE.get() ** 2.0 + VE.get() ** 2.0)
+#
+#     axv.contourf(XE, YE, V, cb)
+#     axv.set_title('Velocity, t=' + str(stepper.saved_times[idx]))
+
+
+# Animation of streamlines
+fig, ax = plt.subplots()
+plt.tight_layout()
+cb = np.linspace(0, 5.0, num=100)
+
+
+def animate_streamlines(idx):
+    ax.collections = []
+    ax.patches = []
+    spectrum_x = grids.fourier_transform(function=cp.asarray(
+        stepper.saved_array[idx][0, 1:-1, :, 1:-1, :]))
+    spectrum_y = grids.fourier_transform(function=cp.asarray(
+        stepper.saved_array[idx][1, 1:-1, :, 1:-1, :]))
+    UE = grids.inverse_transform_linspace(spectrum=spectrum_x)
+    VE = grids.inverse_transform_linspace(spectrum=spectrum_y)
+    V = np.sqrt(UE.get() ** 2.0 + VE.get() ** 2.0).transpose()
+
+    ax.set_xlim(-L / 2, L / 2)
+    ax.set_ylim(-L / 2, L / 2)
+    # ax.streamplot(YE, XE,
+    #               UE.get().transpose(), VE.get().transpose(),
+    #               density=2.0, start_points=start_points, color=V)
+    # ax.set_title('Streamlines, t=' + str(stepper.saved_times[idx]))
+
+    ax.contourf(XE, YE, V.transpose(), cb)
+
+    # plt.show()
+    # print('finishing interpolation')
+
+
+anim_str = animation.FuncAnimation(fig, animate_streamlines, frames=len(stepper.saved_array))
+anim_str.save(filename='velocity_test.mp4')
+# anim_vel = animation.FuncAnimation(fig, animate_velocity, frames=len(stepper.saved_array))
+
+plt.show()
 
 # Bin
 # # Velocity-gradient tensor

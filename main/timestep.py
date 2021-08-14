@@ -2,6 +2,7 @@ import numpy as np
 import cupy as cp
 import time as timer
 import grid as g
+import matplotlib.pyplot as plt
 
 # import copy
 
@@ -69,6 +70,10 @@ class Stepper:
         self.time_array = np.array([self.time])
         self.field_energy = np.array([])
 
+        # Stored array
+        self.saved_times = []
+        self.saved_array = []
+
     def get_coefficients(self):
         return np.array([ssp_rk_switch.get(self.time_order, "nothing")][0])
 
@@ -84,13 +89,16 @@ class Stepper:
         print('\nInitializing time-step...')
         # Adapt time-step
         self.adapt_time_step(max_speeds=get_max_speeds(vector=vector),
+                             max_pressure=cp.amax(cp.absolute(elliptic.pressure.arr)).get(),
                              dx=grids.x.dx, dy=grids.y.dx)
+        self.saved_array += [vector.arr.get()]
+        self.saved_times += [self.time]
         while self.time < self.final_time:
             # Perform RK update
             self.nonlinear_ssp_rk(vector=vector, basis=basis, elliptic=elliptic,
                                   grids=grids, dg_flux=dg_flux)  # , refs=refs)
             # Update time and steps counter
-            self.time += self.dt
+            self.time += self.dt.get()
             self.steps_counter += 1
             # Get field energy and time
             self.time_array = np.append(self.time_array, self.time)
@@ -98,7 +106,14 @@ class Stepper:
             if self.time > self.write_counter * self.write_time:
                 print('\nI made it through step ' + str(self.steps_counter))
                 self.write_counter += 1
-                # print('Saving data...')
+                print('Saving data...')
+                self.saved_array += [vector.arr.get()]
+                self.saved_times += [self.time]
+                # Filter
+                vector.filter(grids=grids)
+                # print(self.saved_array[0].shape)
+                # print(self.saved_array[1].shape)
+                # quit()
                 # save_file.save_data(vector=vector.arr.get(),
                 #                     elliptic=elliptic,
                 #                     density=distribution.moment_zero(),
@@ -106,7 +121,7 @@ class Stepper:
                 #                     field_energy=energy)
                 # print('Done.')
                 print('The simulation time is {:0.3e}'.format(self.time))
-                print('The time-step is {:0.3e}'.format(self.dt))
+                print('The time-step is {:0.3e}'.format(self.dt.get()))
                 print('Time since start is ' + str((timer.time() - t0) / 60.0) + ' minutes')
             # if cp.isnan(distribution.arr).any():
             #     print('\nThere is nan')
@@ -174,14 +189,19 @@ class Stepper:
 
         # Adapt time-step
         self.adapt_time_step(max_speeds=get_max_speeds(vector=vector),
+                             max_pressure=cp.amax(cp.absolute(elliptic.pressure.arr)).get(),
                              dx=grids.x.dx, dy=grids.y.dx)
         # Update distribution
         vector.arr[vector.no_ghost_slice] = stage2.arr[vector.no_ghost_slice]
+        # Filter
+        # vector.filter(grids=grids)
 
-    def adapt_time_step(self, max_speeds, dx, dy):
-        self.dt = self.courant / ((max_speeds[0] / dx) + (max_speeds[1] / dy))
+    def adapt_time_step(self, max_speeds, max_pressure, dx, dy):
+        max0_wp = max_speeds[0] + np.sqrt(max_pressure)
+        max1_wp = max_speeds[1] + np.sqrt(max_pressure)
+        self.dt = self.courant / ((max0_wp / dx) + (max1_wp / dy))
 
 
 def get_max_speeds(vector):
-    return np.absolute(np.array([cp.amax(vector.arr[0, :, :, :, :]),
+    return cp.absolute(cp.array([cp.amax(vector.arr[0, :, :, :, :]),
                                  cp.amax(vector.arr[1, :, :, :, :])]))

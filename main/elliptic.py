@@ -21,8 +21,8 @@ class Elliptic:
                                                self.resolution_ghosts[1], self.orders[1]))
 
         # Spectral indicators
-        self.ikx = cp.tensordot(grids.x.d_wave_numbers, cp.ones_like(grids.y.wave_numbers), axes=0)
-        self.iky = cp.tensordot(cp.ones_like(grids.x.wave_numbers), grids.y.d_wave_numbers, axes=0)
+        self.ikx = cp.tensordot(grids.x.d_wave_numbers, cp.ones_like(grids.y.d_wave_numbers), axes=0)
+        self.iky = cp.tensordot(cp.ones_like(grids.x.d_wave_numbers), grids.y.d_wave_numbers, axes=0)
 
     def pressure_solve(self, velocity, grids):
         """

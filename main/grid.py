@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 # noinspection PyTypeChecker
 class Grid1D:
-    def __init__(self, low, high, res, basis, spectrum=False, fine=False):
+    def __init__(self, low, high, res, basis, spectrum=False, fine=False, linspace=False):
         self.low = low
         self.high = high
         self.res = int(res)  # somehow gets non-int...
@@ -41,6 +41,10 @@ class Grid1D:
             self.arr_fine = np.array([np.linspace(self.arr[i, 0], self.arr[i, -1], num=fine_num)
                                       for i in range(self.res_ghosts)])
 
+        if linspace:
+            lin_num = 100
+            self.arr_lin = np.linspace(self.low, self.high, num=lin_num)
+
         # spectral coefficients
         if spectrum:
             self.nyquist_number = 2 * self.length // self.dx  # 2.5 *  # mode number of nyquist frequency
@@ -49,6 +53,9 @@ class Grid1D:
             self.wave_numbers = self.k1 * np.arange(1 - self.nyquist_number, self.nyquist_number)
             self.d_wave_numbers = cp.asarray(self.wave_numbers)
             self.grid_phases = cp.asarray(np.exp(1j * np.tensordot(self.wave_numbers, self.arr[1:-1, :], axes=0)))
+
+            if linspace:
+                self.lin_phases = cp.asarray(np.exp(1j * np.tensordot(self.wave_numbers, self.arr_lin, axes=0)))
 
             # Spectral matrices
             self.spectral_transform = basis.fourier_transform_array(self.midpoints, self.J, self.wave_numbers)
@@ -83,37 +90,35 @@ class Grid1D:
         """
         # print(function.shape)
         # print(self.spectral_transform.shape)
+        # quit()
         return cp.tensordot(function, self.spectral_transform, axes=(idx, [0, 1])) * self.dx / self.length
 
     def sum_fourier(self, coefficients, idx):
         """
         On GPU, re-sum Fourier coefficients up to pre-set cutoff
         """
-        # return cp.real(cp.tensordot(coefficients, self.grid_phases, axes=(idx, [0])))
-        # print(cp.where(cp.isnan(coefficients) == True))
-        # print(coefficients[39])
-        # quit()
-        # print(self.grid_phases)
-        # quit()
-        # print(cp.tensordot(coefficients, self.grid_phases, axes=(idx, [0])))
-        # print(cp.tensordot(coefficients, self.grid_phases, axes=(idx, [0])))
-        # quit()
         return cp.tensordot(coefficients, self.grid_phases, axes=(idx, [0]))
 
-    def inverse_transformation(self, coefficients, idx):
-        """
-        Experimental: invert Fourier transformation
-        """
-        return cp.real(cp.tensordot(self.inverse_transform, coefficients, axes=([2], idx)))
+    def sum_fourier_to_linspace(self, coefficients, idx):
+        return cp.tensordot(coefficients, self.lin_phases, axes=(idx, [0]))
+
+    # def inverse_transformation(self, coefficients, idx):
+    #     """
+    #     Experimental: invert Fourier transformation
+    #     """
+    #     return cp.real(cp.tensordot(self.inverse_transform, coefficients, axes=([2], idx)))
+    #
+    # def inverse_transformation_linspace(self, coefficients, idx):
+    #     return cp.real(cp.tensordot(self.inverse_transform, coefficients, axes=([2], idx)))
 
 
 class Grid2D:
-    def __init__(self, basis, lows, highs, resolutions, fine_all=False):
+    def __init__(self, basis, lows, highs, resolutions, fine_all=False, linspace=False):
         # Grids
         self.x = Grid1D(low=lows[0], high=highs[0], res=resolutions[0],
-                        basis=basis.basis_x, spectrum=True, fine=fine_all)
+                        basis=basis.basis_x, spectrum=True, fine=fine_all, linspace=linspace)
         self.y = Grid1D(low=lows[1], high=highs[1], res=resolutions[1],
-                        basis=basis.basis_y, spectrum=True, fine=fine_all)
+                        basis=basis.basis_y, spectrum=True, fine=fine_all, linspace=linspace)
         # res
         self.res_ghosts = [self.x.res_ghosts, self.y.res_ghosts]
         self.orders = [self.x.order, self.y.order]
@@ -130,6 +135,12 @@ class Grid2D:
         y_transform = self.y.sum_fourier(coefficients=spectrum, idx=[1])
         xy_transform = self.x.sum_fourier(coefficients=y_transform, idx=[0])
         return cp.real(cp.transpose(xy_transform, axes=(2, 3, 0, 1)))
+
+    def inverse_transform_linspace(self, spectrum):
+        # Inverse transform spectrum back to a linearly spaced grid
+        y_transform = self.y.sum_fourier_to_linspace(coefficients=spectrum, idx=[1])
+        xy_transform = self.x.sum_fourier_to_linspace(coefficients=y_transform, idx=[0])
+        return cp.real(cp.transpose(xy_transform, axes=(1, 0)))
 
 
 class Scalar:
@@ -199,8 +210,9 @@ class Vector:
         y2 = cp.tensordot(cp.ones((self.x_res, self.x_ord)), grids.y.arr_cp, axes=0)
 
         # 2D ABC flow
-        arr_x = cp.cos(y2) + cp.cos(2.0 * y2) + cp.cos(3.0 * y2)  # + y2) + cp.sin(2.0 * x2)
-        arr_y = cp.sin(x2) + cp.sin(2.0 * x2) + cp.sin(3.0 * x2)  # - y2) + cp.cos(2.0 * y2)
+        p2, p3 = 2.0 * cp.random.randn(), 2.0 * cp.random.randn()
+        arr_x = cp.cos(y2) + cp.cos(2.0 * y2 + p2) + cp.cos(3.0 * y2 + p3)  # + y2) + cp.sin(2.0 * x2)
+        arr_y = cp.sin(x2) + cp.sin(2.0 * x2 + p2) + cp.sin(3.0 * x2 + p3)  # - y2) + cp.cos(2.0 * y2)
         # arr_x = cp.cos(x2)*cp.sin(y2) - cp.cos(3.0*x2)*cp.sin(3.0*y2)
         # arr_y = -cp.sin(x2)*cp.cos(y2) + cp.sin(3.0*x2)*cp.cos(3.0*y2)
         # arr_x = cp.cos(y2) + cp.cos(x2)*cp.sin(y2)
@@ -250,3 +262,11 @@ class Vector:
         self.arr[:, -1, :, :, :] = self.arr[:, 1, :, :, :]
         self.arr[:, :, :, 0, :] = self.arr[:, :, :, -2, :]
         self.arr[:, :, :, -1, :] = self.arr[:, :, :, 1, :]
+
+    def filter(self, grids):
+        # Compute spectrum
+        spectrum_x = grids.fourier_transform(function=self.arr[0, 1:-1, :, 1:-1, :])
+        spectrum_y = grids.fourier_transform(function=self.arr[1, 1:-1, :, 1:-1, :])
+        # Inverse transform
+        self.arr[0, 1:-1, :, 1:-1, :] = grids.inverse_transform(spectrum=spectrum_x)
+        self.arr[1, 1:-1, :, 1:-1, :] = grids.inverse_transform(spectrum=spectrum_y)
