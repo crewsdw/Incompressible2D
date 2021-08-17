@@ -33,7 +33,7 @@ resolutions_ghosts = np.array([res_x + 2, res_y + 2])
 grids = g.Grid2D(basis=basis, lows=lows, highs=highs, resolutions=resolutions, linspace=True)
 
 # Time info
-final_time = 6.0 * np.pi
+final_time = 5.1  # 13.0  # 10.0 * np.pi
 write_time = 0.25
 
 # Initialize variable
@@ -101,7 +101,7 @@ if plot_IC:
     plt.figure()
     plt.streamplot(YE, XE,
                    UE.get().transpose(), VE.get().transpose(),
-                   density=2.25, start_points=start_points, color=V)
+                   density=5.0, start_points=start_points, color=V)
     plt.show()
 
 # Test elliptic class and pressure solve
@@ -134,6 +134,7 @@ if plot_IC:
     plt.ylabel('y')
     plt.title('x-component')
     plt.colorbar()
+    plt.tight_layout()
 
     plt.figure()
     cb = np.linspace(cp.amin(velocity.arr), cp.amax(velocity.arr), num=100).get()
@@ -142,6 +143,7 @@ if plot_IC:
     plt.ylabel('y')
     plt.title('y-component')
     plt.colorbar()
+    plt.tight_layout()
 
     plt.figure()
     cb = np.linspace(cp.amin(elliptic.pressure.arr), cp.amax(elliptic.pressure.arr), num=100).get()
@@ -150,6 +152,7 @@ if plot_IC:
     plt.xlabel('x')
     plt.ylabel('y')
     plt.title('Pressure')
+    plt.tight_layout()
 
     # plt.show()
 
@@ -178,37 +181,101 @@ if plot_IC:
 
 
 # Animation of streamlines
-fig, ax = plt.subplots()
-plt.tight_layout()
-cb = np.linspace(0, 5.0, num=100)
+fig, ax = plt.subplots(1, 2, figsize=(16, 8), constrained_layout=True)
+# plt.tight_layout()
+cb = np.linspace(0, np.sqrt(3.0) * np.amax(stepper.saved_array), num=100)
+KX, KY = np.meshgrid(grids.x.wave_numbers, grids.y.wave_numbers, indexing='ij')
+
+# Colorbar
+spectrum_x = grids.fourier_transform(function=cp.asarray(
+        stepper.saved_array[-1][0, 1:-1, :, 1:-1, :]))
+spectrum_y = grids.fourier_transform(function=cp.asarray(
+        stepper.saved_array[-1][1, 1:-1, :, 1:-1, :]))
+div = grids.inverse_transform_linspace(
+        spectrum=(cp.multiply(1j * grids.x.d_wave_numbers[:, None], spectrum_x) +
+                  cp.multiply(1j * grids.y.d_wave_numbers[None, :], spectrum_y))).get()
+vor = grids.inverse_transform_linspace(
+        spectrum=(cp.multiply(1j * grids.x.d_wave_numbers[:, None], spectrum_y) -
+                  cp.multiply(1j * grids.y.d_wave_numbers[None, :], spectrum_x))).get()
+cb_d = np.linspace(np.amin(div), np.amax(div), num=100)
+cb_v = np.linspace(np.amin(vor), np.amax(vor), num=100)
+print('Maximum divergence error is {:.2f}'.format(np.amax(np.absolute(cb_d))))
 
 
 def animate_streamlines(idx):
-    ax.collections = []
-    ax.patches = []
+    ax[0].collections = []
+    ax[0].patches = []
+    ax[1].collections = []
+    ax[1].patches = []
+
+    # Obtain velocity
     spectrum_x = grids.fourier_transform(function=cp.asarray(
         stepper.saved_array[idx][0, 1:-1, :, 1:-1, :]))
     spectrum_y = grids.fourier_transform(function=cp.asarray(
         stepper.saved_array[idx][1, 1:-1, :, 1:-1, :]))
     UE = grids.inverse_transform_linspace(spectrum=spectrum_x)
     VE = grids.inverse_transform_linspace(spectrum=spectrum_y)
-    V = np.sqrt(UE.get() ** 2.0 + VE.get() ** 2.0).transpose()
+    V = cp.sqrt(UE ** 2.0 + VE ** 2.0).get()
+    # Obtain spectrum
+    # V_fg = np.sqrt(stepper.saved_array[idx][0, 1:-1, :, 1:-1, :] ** 2.0 +
+    #                stepper.saved_array[idx][1, 1:-1, :, 1:-1, :] ** 2.0)
+    # dV = V_fg - np.mean(V_fg)
+    # spectrum_V = np.absolute(grids.fourier_transform(function=cp.asarray(dV)).get())
+    # Obtain vorticity
+    vorticity = grids.inverse_transform_linspace(
+        spectrum=(cp.multiply(1j * grids.x.d_wave_numbers[:, None], spectrum_y) -
+                  cp.multiply(1j * grids.y.d_wave_numbers[None, :], spectrum_x))
+    ).get()
 
-    ax.set_xlim(-L / 2, L / 2)
-    ax.set_ylim(-L / 2, L / 2)
+    # Obtain divergence
+    # divergence = grids.inverse_transform_linspace(
+    #     spectrum=(cp.multiply(1j * grids.x.d_wave_numbers[:, None], spectrum_x) +
+    #               cp.multiply(1j * grids.y.d_wave_numbers[None, :], spectrum_y))
+    # ).get()
+
+    # Plot fluid momentum
+    m_idx = 0
+    ax[m_idx].set_xlim(-L / 2, L / 2)
+    ax[m_idx].set_ylim(-L / 2, L / 2)
+    ax[m_idx].contourf(XE, YE, V, cb)
+    ax[m_idx].set_title(r'Fluid momentum $|v|(x,y)$')
+
+    # Plot momentum spectrum
+    # ax[1].set_xlim(-20, 20)
+    # ax[1].set_ylim(-20, 20)
+    # ax[1].contourf(KX, KY, spectrum_V, levels=np.linspace(0, np.amax(spectrum_V), num=100))
+    # ax[1].set_title(r'Spectrum $|v|(kx,ky)$')
+
+    # Plot vorticity
+    v_idx = 1
+    ax[v_idx].set_xlim(-L / 2, L / 2)
+    ax[v_idx].set_ylim(-L / 2, L / 2)
+    ax[v_idx].contourf(XE, YE, vorticity, cb_v)
+    ax[v_idx].set_title(r'Fluid vorticity $\zeta(x,y)$')
+    # fig.colorbar(cfv, ax=ax[v_idx])
+    fig.suptitle('Time t=' + str(stepper.saved_times[idx]))
+
+    # Plot divergence
+    # d_idx = 1
+    # ax[d_idx].set_xlim(-L / 2, L / 2)
+    # ax[d_idx].set_ylim(-L / 2, L / 2)
+    # ax[d_idx].contourf(XE, YE, divergence, cb_d)
+    # ax[d_idx].set_title(r'Momentum divergence $\nabla\cdot v(x,y)$')
+    # fig.colorbar(cfd, ax=ax[d_idx])
+
+    # Figure super title
+    fig.suptitle('Time t={:.2f}'.format(stepper.saved_times[idx]))
+
     # ax.streamplot(YE, XE,
     #               UE.get().transpose(), VE.get().transpose(),
     #               density=2.0, start_points=start_points, color=V)
     # ax.set_title('Streamlines, t=' + str(stepper.saved_times[idx]))
-
-    ax.contourf(XE, YE, V.transpose(), cb)
-
     # plt.show()
     # print('finishing interpolation')
 
 
 anim_str = animation.FuncAnimation(fig, animate_streamlines, frames=len(stepper.saved_array))
-anim_str.save(filename='velocity_test.mp4')
+anim_str.save(filename='..\\movies\\animation.mp4')
 # anim_vel = animation.FuncAnimation(fig, animate_velocity, frames=len(stepper.saved_array))
 
 plt.show()

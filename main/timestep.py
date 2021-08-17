@@ -89,7 +89,7 @@ class Stepper:
         print('\nInitializing time-step...')
         # Adapt time-step
         self.adapt_time_step(max_speeds=get_max_speeds(vector=vector),
-                             max_pressure=cp.amax(cp.absolute(elliptic.pressure.arr)).get(),
+                             min_pressure_dt=get_min_pressure(vector=vector, elliptic=elliptic),
                              dx=grids.x.dx, dy=grids.y.dx)
         self.saved_array += [vector.arr.get()]
         self.saved_times += [self.time]
@@ -102,6 +102,7 @@ class Stepper:
             self.steps_counter += 1
             # Get field energy and time
             self.time_array = np.append(self.time_array, self.time)
+
             # Do write-out sometimes
             if self.time > self.write_counter * self.write_time:
                 print('\nI made it through step ' + str(self.steps_counter))
@@ -123,10 +124,10 @@ class Stepper:
                 print('The simulation time is {:0.3e}'.format(self.time))
                 print('The time-step is {:0.3e}'.format(self.dt.get()))
                 print('Time since start is ' + str((timer.time() - t0) / 60.0) + ' minutes')
-            # if cp.isnan(distribution.arr).any():
-            #     print('\nThere is nan')
-            #     print(self.steps_counter)
-            #     quit()
+            if cp.isnan(vector.arr).any():
+                print('\nThere is nan')
+                print(self.steps_counter)
+                quit()
             # if self.steps_counter == 10 * (2.0 ** self.test_number):
             #     self.write_counter += 1
             #     print('Saving data...')
@@ -158,6 +159,12 @@ class Stepper:
 
         # Zero stage
         elliptic.pressure_solve(velocity=vector, grids=grids)
+        # Adapt time-step
+        self.adapt_time_step(max_speeds=get_max_speeds(vector=vector),
+                             min_pressure_dt=get_min_pressure(vector=vector, elliptic=elliptic),
+                             # cp.amax(cp.absolute(elliptic.pressure.arr)).get(),
+                             dx=grids.x.dx, dy=grids.y.dx)
+        # Continue zero stage
         stage0.arr[vector.no_ghost_slice] = (vector.arr[vector.no_ghost_slice]
                                              + (self.dt *
                                                 dg_flux.semi_discrete_rhs(vector=vector,
@@ -187,21 +194,30 @@ class Stepper:
                                              self.coefficients[1, 1] * stage1.arr[vector.no_ghost_slice] +
                                              self.coefficients[1, 2] * self.dt * df_dt2)
 
-        # Adapt time-step
-        self.adapt_time_step(max_speeds=get_max_speeds(vector=vector),
-                             max_pressure=cp.amax(cp.absolute(elliptic.pressure.arr)).get(),
-                             dx=grids.x.dx, dy=grids.y.dx)
         # Update distribution
         vector.arr[vector.no_ghost_slice] = stage2.arr[vector.no_ghost_slice]
         # Filter
         # vector.filter(grids=grids)
 
-    def adapt_time_step(self, max_speeds, max_pressure, dx, dy):
-        max0_wp = max_speeds[0] + np.sqrt(max_pressure)
-        max1_wp = max_speeds[1] + np.sqrt(max_pressure)
-        self.dt = self.courant / ((max0_wp / dx) + (max1_wp / dy))
+    def adapt_time_step(self, max_speeds, min_pressure_dt, dx, dy):
+        max0_wp = max_speeds[0]  # + np.sqrt(max_pressure)
+        max1_wp = max_speeds[1]  # + np.sqrt(max_pressure)
+        dt_hyper = self.courant / ((max0_wp / dx) + (max1_wp / dy))
+        dt_source = min_pressure_dt
+        print('\n')
+        print(str(dt_hyper) + ' ' + str(dt_source))
+        self.dt = cp.amin(cp.asarray([dt_hyper, dt_source[0], dt_source[1]]))
 
 
 def get_max_speeds(vector):
-    return cp.absolute(cp.array([cp.amax(vector.arr[0, :, :, :, :]),
-                                 cp.amax(vector.arr[1, :, :, :, :])]))
+    return cp.array([cp.amax(cp.absolute(vector.arr[0, :, :, :, :])),
+                     cp.amax(cp.absolute(vector.arr[1, :, :, :, :]))])
+
+
+def get_min_pressure(vector, elliptic):
+    return cp.array([cp.amax(cp.absolute(elliptic.pressure_gradient.arr[0, :, :, :, :])),
+                     cp.amax(cp.absolute(elliptic.pressure_gradient.arr[1, :, :, :, :]))])
+    # return cp.array([cp.amax(cp.absolute(vector.arr[0, :, :, :, :])) /
+    #                  cp.amax(cp.absolute(elliptic.pressure_gradient.arr[0, :, :, :, :])),
+    #                  cp.amax(cp.absolute(vector.arr[1, :, :, :, :])) /
+    #                  cp.amax(cp.absolute(elliptic.pressure_gradient.arr[1, :, :, :, :]))])

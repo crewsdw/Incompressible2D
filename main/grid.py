@@ -2,6 +2,9 @@ import numpy as np
 import cupy as cp
 import scipy.special as sp
 
+# Set random state
+np.random.seed(126)
+
 # For debug
 import matplotlib.pyplot as plt
 
@@ -42,12 +45,12 @@ class Grid1D:
                                       for i in range(self.res_ghosts)])
 
         if linspace:
-            lin_num = 100
+            lin_num = 150
             self.arr_lin = np.linspace(self.low, self.high, num=lin_num)
 
         # spectral coefficients
         if spectrum:
-            self.nyquist_number = 2 * self.length // self.dx  # 2.5 *  # mode number of nyquist frequency
+            self.nyquist_number = 2.0 * self.length // self.dx  # 2.5 *  # mode number of nyquist frequency
             # print(self.nyquist_number)
             self.k1 = 2.0 * np.pi / self.length  # fundamental mode
             self.wave_numbers = self.k1 * np.arange(1 - self.nyquist_number, self.nyquist_number)
@@ -209,10 +212,16 @@ class Vector:
         x2 = cp.tensordot(grids.x.arr_cp, cp.ones((self.y_res, self.y_ord)), axes=0)
         y2 = cp.tensordot(cp.ones((self.x_res, self.x_ord)), grids.y.arr_cp, axes=0)
 
-        # 2D ABC flow
-        p2, p3 = 2.0 * cp.random.randn(), 2.0 * cp.random.randn()
-        arr_x = cp.cos(y2) + cp.cos(2.0 * y2 + p2) + cp.cos(3.0 * y2 + p3)  # + y2) + cp.sin(2.0 * x2)
-        arr_y = cp.sin(x2) + cp.sin(2.0 * x2 + p2) + cp.sin(3.0 * x2 + p3)  # - y2) + cp.cos(2.0 * y2)
+        # 2D ABC flow superposition
+        number = [1, 2]  # , 3, 4, 5]
+        p = np.pi * np.random.randn(len(number))  # phases
+        print(p)
+        arr_x = sum([cp.cos(number * y2 + p[idx]) for idx, number in enumerate(number)])
+        arr_y = sum([cp.sin(number * x2 + p[idx]) for idx, number in enumerate(number)])
+        # arr_x = -cp.sin(y2)
+        # arr_y = cp.sin(x2)
+        # arr_x = cp.cos(y2) + cp.cos
+        # arr_y = cp.ones_like(arr_x)
         # arr_x = cp.cos(x2)*cp.sin(y2) - cp.cos(3.0*x2)*cp.sin(3.0*y2)
         # arr_y = -cp.sin(x2)*cp.cos(y2) + cp.sin(3.0*x2)*cp.cos(3.0*y2)
         # arr_x = cp.cos(y2) + cp.cos(x2)*cp.sin(y2)
@@ -246,7 +255,7 @@ class Vector:
         """
         Compute double contraction of velocity-gradient tensor
         """
-        self.pressure_source = cp.einsum('ijklnm,jiklnm->klnm', self.grad, self.grad)
+        self.pressure_source = -1.0 * cp.einsum('ijklnm,jiklnm->klnm', self.grad, self.grad)
 
     def grid_flatten_arr(self):
         return self.arr.reshape((2, self.x_res * self.x_ord, self.y_res * self.y_ord))
@@ -270,3 +279,28 @@ class Vector:
         # Inverse transform
         self.arr[0, 1:-1, :, 1:-1, :] = grids.inverse_transform(spectrum=spectrum_x)
         self.arr[1, 1:-1, :, 1:-1, :] = grids.inverse_transform(spectrum=spectrum_y)
+
+
+def inv_rot_x(x2, y2, angle):
+    rot_x2 = cp.cos(angle) * x2 + cp.sin(angle) * y2
+    return rot_x2
+
+
+def inv_rot_y(x2, y2, angle):
+    rot_y2 = -cp.sin(angle) * x2 + cp.cos(angle) * y2
+    return rot_y2
+
+# Trash bin
+# q = np.pi * np.random.randn(number)
+        # arr_x = cp.cos(y2 + p1) + cp.cos(2.0 * y2 + p2) + cp.cos(3.0 * y2 + p3) +  # + y2) + cp.sin(2.0 * x2)
+        # arr_y = cp.sin(x2 + p1) + cp.sin(2.0 * x2 + p2) + cp.sin(3.0 * x2 + p3)  # - y2) + cp.cos(2.0 * y2)
+        # rot_x2, rot_y2 = np.zeros_like(q), np.zeros_like(q)
+        # for idx, angle in enumerate(q):
+        #     rot_x2[idx] = cp.cos(angle) * x2 + cp.sin(angle) * y2
+        #     rot_y2[idx] = -cp.sin(angle) * x2 + cp.cos(angle) * y2
+        # arr_x = sum([cp.cos((i+1) * inv_rot_y(x2, y2, q[i]) + p[i]) * cp.cos(q[i]) -
+        #              cp.sin((i+1) * inv_rot_x(x2, y2, q[i]) + p[i]) * cp.sin(q[i])
+        #              for i in range(number)])
+        # arr_y = sum([cp.cos((i+1) * inv_rot_y(x2, y2, q[i]) + p[i]) * cp.sin(q[i]) +
+        #              cp.sin((i+1) * inv_rot_x(x2, y2, q[i]) + p[i]) * cp.cos(q[i])
+        #              for i in range(number)])

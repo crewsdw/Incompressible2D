@@ -55,7 +55,7 @@ class DGFlux:
         Calculate the right-hand side of semi-discrete equation
         """
         return ((self.x_flux(vector=vector, basis=basis.basis_x) * grids.x.J) +
-                (self.y_flux(vector=vector, basis=basis.basis_y) * grids.y.J) -
+                (self.y_flux(vector=vector, basis=basis.basis_y) * grids.y.J) +
                 self.source_term(elliptic=elliptic))
 
     def x_flux(self, vector, basis):  # , elliptic, grid_x):
