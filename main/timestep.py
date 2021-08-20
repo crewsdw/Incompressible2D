@@ -111,7 +111,7 @@ class Stepper:
                 self.saved_array += [vector.arr.get()]
                 self.saved_times += [self.time]
                 # Filter
-                vector.filter(grids=grids)
+                # vector.filter(grids=grids)
                 # print(self.saved_array[0].shape)
                 # print(self.saved_array[1].shape)
                 # quit()
@@ -175,10 +175,10 @@ class Stepper:
 
         # First stage
         elliptic.pressure_solve(velocity=stage0, grids=grids)
-        df_dt1 = self.dt * dg_flux.semi_discrete_rhs(vector=stage0,
-                                                     elliptic=elliptic,
-                                                     basis=basis,
-                                                     grids=grids)[vector.no_ghost_slice]
+        df_dt1 = dg_flux.semi_discrete_rhs(vector=stage0,
+                                           elliptic=elliptic,
+                                           basis=basis,
+                                           grids=grids)[vector.no_ghost_slice]
         stage1.arr[vector.no_ghost_slice] = (self.coefficients[0, 0] * vector.arr[vector.no_ghost_slice] +
                                              self.coefficients[0, 1] * stage0.arr[vector.no_ghost_slice] +
                                              self.coefficients[0, 2] * self.dt * df_dt1)
@@ -186,10 +186,10 @@ class Stepper:
 
         # Second stage
         elliptic.pressure_solve(velocity=stage1, grids=grids)
-        df_dt2 = self.dt * dg_flux.semi_discrete_rhs(vector=stage1,
-                                                     elliptic=elliptic,
-                                                     basis=basis,
-                                                     grids=grids)[vector.no_ghost_slice]
+        df_dt2 = dg_flux.semi_discrete_rhs(vector=stage1,
+                                           elliptic=elliptic,
+                                           basis=basis,
+                                           grids=grids)[vector.no_ghost_slice]
         stage2.arr[vector.no_ghost_slice] = (self.coefficients[1, 0] * vector.arr[vector.no_ghost_slice] +
                                              self.coefficients[1, 1] * stage1.arr[vector.no_ghost_slice] +
                                              self.coefficients[1, 2] * self.dt * df_dt2)
@@ -200,13 +200,17 @@ class Stepper:
         # vector.filter(grids=grids)
 
     def adapt_time_step(self, max_speeds, min_pressure_dt, dx, dy):
+        max_pressure = min_pressure_dt
         max0_wp = max_speeds[0]  # + np.sqrt(max_pressure)
         max1_wp = max_speeds[1]  # + np.sqrt(max_pressure)
-        dt_hyper = self.courant / ((max0_wp / dx) + (max1_wp / dy))
-        dt_source = min_pressure_dt
-        print('\n')
-        print(str(dt_hyper) + ' ' + str(dt_source))
-        self.dt = cp.amin(cp.asarray([dt_hyper, dt_source[0], dt_source[1]]))
+        self.dt = 0.5 * self.courant / ((max0_wp / dx) + (max1_wp / dy) +
+                                  1.0 / max_pressure[0] + 1.0 / max_pressure[1])
+        # np.sqrt(max_pressure[0] / dx) + np.sqrt(max_pressure[1] / dy))
+        # dt_source = self.courant / ()
+        # print('\n')
+        # print(self.courant)
+        # print(str(self.dt))  # + ' ' + str(dt_source))
+        # self.dt = cp.amin(cp.asarray([dt_hyper, dt_source[0], dt_source[1]]))
 
 
 def get_max_speeds(vector):
@@ -215,9 +219,9 @@ def get_max_speeds(vector):
 
 
 def get_min_pressure(vector, elliptic):
-    return cp.array([cp.amax(cp.absolute(elliptic.pressure_gradient.arr[0, :, :, :, :])),
-                     cp.amax(cp.absolute(elliptic.pressure_gradient.arr[1, :, :, :, :]))])
-    # return cp.array([cp.amax(cp.absolute(vector.arr[0, :, :, :, :])) /
-    #                  cp.amax(cp.absolute(elliptic.pressure_gradient.arr[0, :, :, :, :])),
-    #                  cp.amax(cp.absolute(vector.arr[1, :, :, :, :])) /
+    # return cp.array([cp.amax(cp.absolute(elliptic.pressure_gradient.arr[0, :, :, :, :])),
     #                  cp.amax(cp.absolute(elliptic.pressure_gradient.arr[1, :, :, :, :]))])
+    return cp.array([cp.amax(cp.absolute(vector.arr[0, :, :, :, :])) /
+                     cp.amax(cp.absolute(elliptic.pressure_gradient.arr[0, :, :, :, :])),
+                     cp.amax(cp.absolute(vector.arr[1, :, :, :, :])) /
+                     cp.amax(cp.absolute(elliptic.pressure_gradient.arr[1, :, :, :, :]))])

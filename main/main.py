@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 
 # Parameters
 order = 8
-res_x, res_y = 25, 25
+res_x, res_y = 30, 30
 
 # Flags
 plot_IC = True
@@ -33,8 +33,8 @@ resolutions_ghosts = np.array([res_x + 2, res_y + 2])
 grids = g.Grid2D(basis=basis, lows=lows, highs=highs, resolutions=resolutions, linspace=True)
 
 # Time info
-final_time = 5.1  # 13.0  # 10.0 * np.pi
-write_time = 0.25
+final_time = 0.5  # 13.0  # 10.0 * np.pi
+write_time = 0.1
 
 # Initialize variable
 source = g.Scalar(resolutions=resolutions_ghosts, orders=orders)
@@ -183,7 +183,7 @@ if plot_IC:
 # Animation of streamlines
 fig, ax = plt.subplots(1, 2, figsize=(16, 8), constrained_layout=True)
 # plt.tight_layout()
-cb = np.linspace(0, np.sqrt(3.0) * np.amax(stepper.saved_array), num=100)
+cb = np.linspace(0, np.sqrt(2.0) * np.amax(np.absolute(stepper.saved_array)), num=100)
 KX, KY = np.meshgrid(grids.x.wave_numbers, grids.y.wave_numbers, indexing='ij')
 
 # Colorbar
