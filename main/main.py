@@ -11,8 +11,8 @@ import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 
 # Parameters
-order = 8
-res_x, res_y = 30, 30
+order = 6
+res_x, res_y = 40, 40
 
 # Flags
 plot_IC = True
@@ -33,7 +33,7 @@ resolutions_ghosts = np.array([res_x + 2, res_y + 2])
 grids = g.Grid2D(basis=basis, lows=lows, highs=highs, resolutions=resolutions, linspace=True)
 
 # Time info
-final_time = 0.5  # 13.0  # 10.0 * np.pi
+final_time = 1.101  # 13.0  # 10.0 * np.pi
 write_time = 0.1
 
 # Initialize variable

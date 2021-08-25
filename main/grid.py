@@ -213,7 +213,7 @@ class Vector:
         y2 = cp.tensordot(cp.ones((self.x_res, self.x_ord)), grids.y.arr_cp, axes=0)
 
         # 2D ABC flow superposition
-        number = [1, 2, 3, 4, 5]
+        number = [1, 2, 3, 4]
         p = np.pi * np.random.randn(len(number))  # phases
         # print(p)
         arr_x = sum([cp.cos(number * y2 + p[idx]) for idx, number in enumerate(number)])

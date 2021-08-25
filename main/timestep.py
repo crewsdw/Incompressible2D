@@ -111,7 +111,7 @@ class Stepper:
                 self.saved_array += [vector.arr.get()]
                 self.saved_times += [self.time]
                 # Filter
-                # vector.filter(grids=grids)
+                vector.filter(grids=grids)
                 # print(self.saved_array[0].shape)
                 # print(self.saved_array[1].shape)
                 # quit()
@@ -125,9 +125,8 @@ class Stepper:
                 print('The time-step is {:0.3e}'.format(self.dt.get()))
                 print('Time since start is ' + str((timer.time() - t0) / 60.0) + ' minutes')
             if cp.isnan(vector.arr).any():
-                print('\nThere is nan')
-                print(self.steps_counter)
-                quit()
+                print('\nCaught a nan at ' + str(self.steps_counter))
+                return
             # if self.steps_counter == 10 * (2.0 ** self.test_number):
             #     self.write_counter += 1
             #     print('Saving data...')
@@ -203,10 +202,11 @@ class Stepper:
         max_pressure = min_pressure_dt
         max0_wp = max_speeds[0]  # + np.sqrt(max_pressure)
         max1_wp = max_speeds[1]  # + np.sqrt(max_pressure)
-        self.dt = 0.5 * self.courant / ((max0_wp / dx) + (max1_wp / dy) +
-                                  1.0 / max_pressure[0] + 1.0 / max_pressure[1])
+        self.dt = self.courant / ((max0_wp / dx) + (max1_wp / dy) +
+                                  1.0 / max_pressure[0] + 1.0 / max_pressure[1]) / 4.0
         # np.sqrt(max_pressure[0] / dx) + np.sqrt(max_pressure[1] / dy))
         # dt_source = self.courant / ()
+        # print(self.dt)
         # print('\n')
         # print(self.courant)
         # print(str(self.dt))  # + ' ' + str(dt_source))
