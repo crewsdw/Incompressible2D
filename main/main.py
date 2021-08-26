@@ -11,11 +11,13 @@ import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 
 # Parameters
-order = 6
-res_x, res_y = 40, 40
+order = 8
+res_x, res_y = 25, 25
 
 # Flags
 plot_IC = True
+experimental_viscosity = True
+cmap = 'RdPu'
 
 # Build basis
 print('Initializing basis...')
@@ -33,44 +35,32 @@ resolutions_ghosts = np.array([res_x + 2, res_y + 2])
 grids = g.Grid2D(basis=basis, lows=lows, highs=highs, resolutions=resolutions, linspace=True)
 
 # Time info
-final_time = 1.101  # 13.0  # 10.0 * np.pi
+final_time = 1.1  # 13.0  # 10.0 * np.pi
 write_time = 0.1
 
 # Initialize variable
 source = g.Scalar(resolutions=resolutions_ghosts, orders=orders)
 source.initialize(grids=grids)
 
-# Visualize
+# Visualize (for plotting)
 X, Y = np.meshgrid(grids.x.arr[:, :].flatten(), grids.y.arr[:, :].flatten(), indexing='ij')
 
-# ng = [slice(1, -1), slice(None), slice(1, -1), slice(None)]
 ng = (slice(order, -order), slice(order, -order))
 ng0 = (0, slice(order, -order), slice(order, -order))
 ng1 = (1, slice(order, -order), slice(order, -order))
-
 nt00 = (0, 0, slice(None), slice(None))  # slice(order, -order), slice(order, -order))
 nt01 = (0, 1, slice(None), slice(None))  # slice(order, -order), slice(order, -order))
 nt10 = (1, 0, slice(None), slice(None))  # slice(order, -order), slice(order, -order))
 nt11 = (1, 1, slice(None), slice(None))  # slice(order, -order), slice(order, -order))
 
-# if plot_IC:
-#     plt.figure()
-#     cb = np.linspace(cp.amin(source.arr), cp.amax(source.arr), num=100).get()
-#     plt.contourf(X[ng], Y[ng], source.grid_flatten_gpu().get()[ng], cb)
-#     plt.xlabel('x')
-#     plt.ylabel('y')
-#     plt.colorbar()
-#
-#     plt.show()
-
-# Test vector-valued variable
+# Initialize vector-valued variable
 velocity = g.Vector(resolutions=resolutions_ghosts, orders=orders)
 velocity.initialize(grids=grids)
 
 if plot_IC:
     plt.figure()
     cb = np.linspace(cp.amin(velocity.arr), cp.amax(velocity.arr), num=100).get()
-    plt.contourf(X[ng], Y[ng], velocity.grid_flatten_arr().get()[ng0], cb)
+    plt.contourf(X[ng], Y[ng], velocity.grid_flatten_arr().get()[ng0], cb, cmap=cmap)
     plt.xlabel('x')
     plt.ylabel('y')
     plt.title('x-component')
@@ -78,11 +68,13 @@ if plot_IC:
 
     plt.figure()
     cb = np.linspace(cp.amin(velocity.arr), cp.amax(velocity.arr), num=100).get()
-    plt.contourf(X[ng], Y[ng], velocity.grid_flatten_arr().get()[ng1], cb)
+    plt.contourf(X[ng], Y[ng], velocity.grid_flatten_arr().get()[ng1], cb, cmap=cmap)
     plt.xlabel('x')
     plt.ylabel('y')
     plt.title('y-component')
     plt.colorbar()
+
+    print(cp.amax(velocity.arr))
 
     # Interpolate 2D
     XE = np.tensordot(grids.x.arr_lin, np.ones_like(grids.y.arr_lin), axes=0)
@@ -111,14 +103,14 @@ elliptic.pressure_solve(velocity=velocity, grids=grids)
 # Check it out
 plt.figure()
 cb = np.linspace(cp.amin(elliptic.pressure.arr), cp.amax(elliptic.pressure.arr), num=100).get()
-plt.contourf(X[ng], Y[ng], elliptic.pressure.grid_flatten_gpu().get()[ng], cb)
+plt.contourf(X[ng], Y[ng], elliptic.pressure.grid_flatten_gpu().get()[ng], cb, cmap=cmap)
 plt.colorbar()
 plt.xlabel('x')
 plt.ylabel('y')
 plt.show()
 
 # Try solution to some time
-dg_flux = fx.DGFlux(resolutions=resolutions_ghosts, orders=orders)
+dg_flux = fx.DGFlux(resolutions=resolutions_ghosts, orders=orders, experimental_viscosity=experimental_viscosity)
 stepper = ts.Stepper(time_order=3, space_order=order,
                      write_time=write_time, final_time=final_time)
 
@@ -127,9 +119,10 @@ stepper.main_loop(vector=velocity, basis=basis, elliptic=elliptic, grids=grids, 
 
 print('\nVisualizing final state')
 if plot_IC:
+    print(cp.amax(velocity.arr))
     plt.figure()
     cb = np.linspace(cp.amin(velocity.arr), cp.amax(velocity.arr), num=100).get()
-    plt.contourf(X[ng], Y[ng], velocity.grid_flatten_arr().get()[ng0], cb)
+    plt.contourf(X[ng], Y[ng], velocity.grid_flatten_arr().get()[ng0], cb, cmap=cmap)
     plt.xlabel('x')
     plt.ylabel('y')
     plt.title('x-component')
@@ -138,7 +131,7 @@ if plot_IC:
 
     plt.figure()
     cb = np.linspace(cp.amin(velocity.arr), cp.amax(velocity.arr), num=100).get()
-    plt.contourf(X[ng], Y[ng], velocity.grid_flatten_arr().get()[ng1], cb)
+    plt.contourf(X[ng], Y[ng], velocity.grid_flatten_arr().get()[ng1], cb, cmap=cmap)
     plt.xlabel('x')
     plt.ylabel('y')
     plt.title('y-component')
@@ -147,7 +140,7 @@ if plot_IC:
 
     plt.figure()
     cb = np.linspace(cp.amin(elliptic.pressure.arr), cp.amax(elliptic.pressure.arr), num=100).get()
-    plt.contourf(X[ng], Y[ng], elliptic.pressure.grid_flatten_gpu().get()[ng], cb)
+    plt.contourf(X[ng], Y[ng], elliptic.pressure.grid_flatten_gpu().get()[ng], cb, cmap=cmap)
     plt.colorbar()
     plt.xlabel('x')
     plt.ylabel('y')
@@ -198,7 +191,7 @@ vor = grids.inverse_transform_linspace(
         spectrum=(cp.multiply(1j * grids.x.d_wave_numbers[:, None], spectrum_y) -
                   cp.multiply(1j * grids.y.d_wave_numbers[None, :], spectrum_x))).get()
 cb_d = np.linspace(np.amin(div), np.amax(div), num=100)
-cb_v = np.linspace(np.amin(vor), np.amax(vor), num=100)
+cb_v = np.linspace(3.0 * np.amin(vor), 3.0 * np.amax(vor), num=100)
 print('Maximum divergence error is {:.2f}'.format(np.amax(np.absolute(cb_d))))
 
 
@@ -237,7 +230,8 @@ def animate_streamlines(idx):
     m_idx = 0
     ax[m_idx].set_xlim(-L / 2, L / 2)
     ax[m_idx].set_ylim(-L / 2, L / 2)
-    ax[m_idx].contourf(XE, YE, V, cb)
+    cb = np.linspace(0, np.amax(V), num=100)
+    ax[m_idx].contourf(XE, YE, V, cb, cmap=cmap)
     ax[m_idx].set_title(r'Fluid momentum $|v|(x,y)$')
 
     # Plot momentum spectrum
@@ -250,7 +244,8 @@ def animate_streamlines(idx):
     v_idx = 1
     ax[v_idx].set_xlim(-L / 2, L / 2)
     ax[v_idx].set_ylim(-L / 2, L / 2)
-    ax[v_idx].contourf(XE, YE, vorticity, cb_v)
+    cb_v = np.linspace(np.amin(vorticity), np.amax(vorticity), num=100)
+    ax[v_idx].contourf(XE, YE, vorticity, cb_v, cmap=cmap)
     ax[v_idx].set_title(r'Fluid vorticity $\zeta(x,y)$')
     # fig.colorbar(cfv, ax=ax[v_idx])
     fig.suptitle('Time t=' + str(stepper.saved_times[idx]))

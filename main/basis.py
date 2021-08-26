@@ -268,23 +268,12 @@ class Basis1D:
         """ Determine interpolated values on a finer grid using the basis functions"""
         # Compute affine transformation per-element to isoparametric element
         xi = grid.J * (grid.arr_fine[1:-1, :] - grid.midpoints[:, None])
-        #
-        # print(grid.arr[1, :])
-        # print(xi[0, :])
-        # print(grid.arr_fine[1, :])
         # Legendre polynomials at transformed points
         ps = np.array([sp.legendre(s)(xi) for s in range(self.order)])
         # Interpolation polynomials at fine points
         ell = np.transpose(np.tensordot(self.vandermonde_inverse, ps, axes=([0], [0])), [1, 0, 2])
         # Compute interpolated values
-        values = np.multiply(ell, arr[:, :, None]).sum(axis=1)
-        # Debug: Look at it
-        # plt.figure()
-        # plt.plot(grid.arr[1:-1, :].flatten(), arr[1:-1, :].flatten(), 'o--')
-        # plt.plot(grid.arr_fine[1:-1, :].flatten(), values.flatten(), 'o--')
-        # plt.grid(True)
-        # plt.show()
-        return values
+        return np.multiply(ell, arr[:, :, None]).sum(axis=1)
 
 
 def sparse_tensors(tensor):

@@ -126,6 +126,10 @@ class Grid2D:
         self.res_ghosts = [self.x.res_ghosts, self.y.res_ghosts]
         self.orders = [self.x.order, self.y.order]
 
+        # spectral radius squared (for laplacian)
+        self.kr_sq = (outer2(self.x.d_wave_numbers, cp.ones_like(self.y.d_wave_numbers)) ** 2.0 +
+                      outer2(cp.ones_like(self.x.d_wave_numbers), self.y.d_wave_numbers) ** 2.0)
+
     def fourier_transform(self, function):
         # Transform function on a 2D grid
         x_transform = cp.transpose(self.x.fourier_basis(function=function, idx=[0, 1]),
@@ -144,6 +148,9 @@ class Grid2D:
         y_transform = self.y.sum_fourier_to_linspace(coefficients=spectrum, idx=[1])
         xy_transform = self.x.sum_fourier_to_linspace(coefficients=y_transform, idx=[0])
         return cp.real(cp.transpose(xy_transform, axes=(1, 0)))
+
+    def laplacian(self, function):
+        return self.inverse_transform(spectrum=cp.multiply(-self.kr_sq, self.fourier_transform(function=function)))
 
 
 class Scalar:
@@ -213,7 +220,7 @@ class Vector:
         y2 = cp.tensordot(cp.ones((self.x_res, self.x_ord)), grids.y.arr_cp, axes=0)
 
         # 2D ABC flow superposition
-        number = [1, 2, 3, 4]
+        number = [1, 2, 3, 4, 5]
         p = np.pi * np.random.randn(len(number))  # phases
         # print(p)
         arr_x = sum([cp.cos(number * y2 + p[idx]) for idx, number in enumerate(number)])
@@ -280,27 +287,48 @@ class Vector:
         self.arr[0, 1:-1, :, 1:-1, :] = grids.inverse_transform(spectrum=spectrum_x)
         self.arr[1, 1:-1, :, 1:-1, :] = grids.inverse_transform(spectrum=spectrum_y)
 
+    def laplacian(self, grids):
+        """
+        Return the vector laplacian on the given grids
+        :param grids: Grids2D object
+        :return: vector Laplacian (u_xx + u_yy, v_xx + v_yy) of size (2, Nx, n, Ny, n)
+        """
+        laplacian = cp.zeros_like(self.arr)
+        laplacian[:, 1:-1, :, 1:-1, :] = cp.array([grids.laplacian(function=self.arr[0, 1:-1, :, 1:-1, :]),
+                                                   grids.laplacian(function=self.arr[1, 1:-1, :, 1:-1, :])])
+        return laplacian
 
-def inv_rot_x(x2, y2, angle):
-    rot_x2 = cp.cos(angle) * x2 + cp.sin(angle) * y2
-    return rot_x2
 
+def outer2(a, b):
+    """
+    Compute outer tensor product of vectors a, b
+    :param a: vector a_i
+    :param b: vector b_j
+    :return: tensor a_i b_j
+    """
+    return cp.tensordot(a, b, axes=0)
 
-def inv_rot_y(x2, y2, angle):
-    rot_y2 = -cp.sin(angle) * x2 + cp.cos(angle) * y2
-    return rot_y2
+#
+# def inv_rot_x(x2, y2, angle):
+#     rot_x2 = cp.cos(angle) * x2 + cp.sin(angle) * y2
+#     return rot_x2
+#
+#
+# def inv_rot_y(x2, y2, angle):
+#     rot_y2 = -cp.sin(angle) * x2 + cp.cos(angle) * y2
+#     return rot_y2
 
 # Trash bin
 # q = np.pi * np.random.randn(number)
-        # arr_x = cp.cos(y2 + p1) + cp.cos(2.0 * y2 + p2) + cp.cos(3.0 * y2 + p3) +  # + y2) + cp.sin(2.0 * x2)
-        # arr_y = cp.sin(x2 + p1) + cp.sin(2.0 * x2 + p2) + cp.sin(3.0 * x2 + p3)  # - y2) + cp.cos(2.0 * y2)
-        # rot_x2, rot_y2 = np.zeros_like(q), np.zeros_like(q)
-        # for idx, angle in enumerate(q):
-        #     rot_x2[idx] = cp.cos(angle) * x2 + cp.sin(angle) * y2
-        #     rot_y2[idx] = -cp.sin(angle) * x2 + cp.cos(angle) * y2
-        # arr_x = sum([cp.cos((i+1) * inv_rot_y(x2, y2, q[i]) + p[i]) * cp.cos(q[i]) -
-        #              cp.sin((i+1) * inv_rot_x(x2, y2, q[i]) + p[i]) * cp.sin(q[i])
-        #              for i in range(number)])
-        # arr_y = sum([cp.cos((i+1) * inv_rot_y(x2, y2, q[i]) + p[i]) * cp.sin(q[i]) +
-        #              cp.sin((i+1) * inv_rot_x(x2, y2, q[i]) + p[i]) * cp.cos(q[i])
-        #              for i in range(number)])
+# arr_x = cp.cos(y2 + p1) + cp.cos(2.0 * y2 + p2) + cp.cos(3.0 * y2 + p3) +  # + y2) + cp.sin(2.0 * x2)
+# arr_y = cp.sin(x2 + p1) + cp.sin(2.0 * x2 + p2) + cp.sin(3.0 * x2 + p3)  # - y2) + cp.cos(2.0 * y2)
+# rot_x2, rot_y2 = np.zeros_like(q), np.zeros_like(q)
+# for idx, angle in enumerate(q):
+#     rot_x2[idx] = cp.cos(angle) * x2 + cp.sin(angle) * y2
+#     rot_y2[idx] = -cp.sin(angle) * x2 + cp.cos(angle) * y2
+# arr_x = sum([cp.cos((i+1) * inv_rot_y(x2, y2, q[i]) + p[i]) * cp.cos(q[i]) -
+#              cp.sin((i+1) * inv_rot_x(x2, y2, q[i]) + p[i]) * cp.sin(q[i])
+#              for i in range(number)])
+# arr_y = sum([cp.cos((i+1) * inv_rot_y(x2, y2, q[i]) + p[i]) * cp.sin(q[i]) +
+#              cp.sin((i+1) * inv_rot_x(x2, y2, q[i]) + p[i]) * cp.cos(q[i])
+#              for i in range(number)])

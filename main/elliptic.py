@@ -21,8 +21,10 @@ class Elliptic:
                                                self.resolution_ghosts[1], self.orders[1]))
 
         # Spectral indicators
-        self.ikx = cp.tensordot(grids.x.d_wave_numbers, cp.ones_like(grids.y.d_wave_numbers), axes=0)
-        self.iky = cp.tensordot(cp.ones_like(grids.x.d_wave_numbers), grids.y.d_wave_numbers, axes=0)
+        # self.ikx = cp.tensordot(grids.x.d_wave_numbers, cp.ones_like(grids.y.d_wave_numbers), axes=0)
+        # self.iky = cp.tensordot(cp.ones_like(grids.x.d_wave_numbers), grids.y.d_wave_numbers, axes=0)
+        self.kr_sq = (outer2(grids.x.d_wave_numbers, cp.ones_like(grids.y.d_wave_numbers)) ** 2.0 +
+                      outer2(cp.ones_like(grids.x.d_wave_numbers), grids.y.d_wave_numbers) ** 2.0)
 
     def pressure_solve(self, velocity, grids):
         """
@@ -36,7 +38,7 @@ class Elliptic:
         spectrum = grids.fourier_transform(function=velocity.pressure_source)
 
         # Determine Poisson solution spectrum (nan_to_num takes divide-by-zero nan to zero)
-        poisson_spectrum = -1.0 * cp.nan_to_num(cp.divide(spectrum, self.ikx ** 2.0 + self.iky ** 2.0))
+        poisson_spectrum = -1.0 * cp.nan_to_num(cp.divide(spectrum, self.kr_sq))  # self.ikx ** 2.0 + self.iky ** 2.0))
 
         # Inverse transform for poisson solution
         self.pressure.arr[1:-1, :, 1:-1, :] = grids.inverse_transform(spectrum=poisson_spectrum)
@@ -47,6 +49,16 @@ class Elliptic:
 
         self.pressure_gradient.arr[0, 1:-1, :, 1:-1, :] = grids.inverse_transform(spectrum=x_spectrum)
         self.pressure_gradient.arr[1, 1:-1, :, 1:-1, :] = grids.inverse_transform(spectrum=y_spectrum)
+
+
+def outer2(a, b):
+    """
+    Compute outer tensor product of vectors a, b
+    :param a: vector a_i
+    :param b: vector b_j
+    :return: tensor a_i b_j
+    """
+    return cp.tensordot(a, b, axes=0)
 
 # Bin:
 # KX, KY = np.meshgrid(grids.x.wave_numbers, grids.y.wave_numbers, indexing='ij')

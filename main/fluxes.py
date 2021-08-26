@@ -8,7 +8,7 @@ def basis_product(flux, basis_arr, axis, permutation):
 
 
 class DGFlux:
-    def __init__(self, resolutions, orders):
+    def __init__(self, resolutions, orders, experimental_viscosity=False):
         self.resolutions = resolutions
         self.orders = orders
         # Permutations
@@ -42,13 +42,14 @@ class DGFlux:
               slice(resolutions[1]), -1)]]
 
         # Grid and sub-element axes
-        # self.grid_axis = np.array([0, 2, 4])
-        # self.sub_element_axis = np.array([1, 3, 5])
         self.grid_axis = np.array([1, 3])
         self.sub_element_axis = np.array([2, 4])
         # Numerical flux allocation size arrays
         self.num_flux_sizes = [(2, resolutions[0], 2, resolutions[1], orders[1]),
                                (2, resolutions[0], orders[0], resolutions[1], 2)]
+
+        # Flags
+        self.experimental_viscosity = experimental_viscosity
 
     def semi_discrete_rhs(self, vector, elliptic, basis, grids):
         """
@@ -56,7 +57,7 @@ class DGFlux:
         """
         return ((self.x_flux(vector=vector, basis=basis.basis_x) * grids.x.J) +
                 (self.y_flux(vector=vector, basis=basis.basis_y) * grids.y.J) +
-                self.source_term(elliptic=elliptic))
+                self.source_term(elliptic=elliptic, vector=vector, grids=grids))
 
     def x_flux(self, vector, basis):  # , elliptic, grid_x):
         dim = 0
@@ -105,8 +106,13 @@ class DGFlux:
                              axis=self.sub_element_axis[dim],
                              permutation=self.permutations[dim])
 
-    def source_term(self, elliptic):
+    def source_term(self, elliptic, vector, grids):
         """
-        Add the pressure gradient point-wise as a source term in NS momentum equation
+        Add source terms in NS momentum equation point-wise: the pressure gradient and experimental_viscosity
         """
-        return -1.0 * elliptic.pressure_gradient.arr
+        nu = 1.5e-1
+
+        if self.experimental_viscosity:
+            return nu * vector.laplacian(grids=grids) - elliptic.pressure_gradient.arr
+        else:
+            return -1.0 * elliptic.pressure_gradient.arr
