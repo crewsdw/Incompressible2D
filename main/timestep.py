@@ -89,7 +89,7 @@ class Stepper:
         print('\nInitializing time-step...')
         # Adapt time-step
         self.adapt_time_step(max_speeds=get_max_speeds(vector=vector),
-                             min_pressure_dt=get_min_pressure(vector=vector, elliptic=elliptic),
+                             pressure_dt=estimate_pressure_dt(vector=vector, elliptic=elliptic),
                              dx=grids.x.dx, dy=grids.y.dx)
         self.saved_array += [vector.arr.get()]
         self.saved_times += [self.time]
@@ -195,7 +195,7 @@ class Stepper:
 
         # Update distribution
         vector.arr[vector.no_ghost_slice] = stage2.arr[vector.no_ghost_slice]
-    
+
     def adapt_time_step(self, max_speeds, pressure_dt, dx, dy):
         max0_wp = max_speeds[0]  # + np.sqrt(max_pressure)
         max1_wp = max_speeds[1]  # + np.sqrt(max_pressure)
