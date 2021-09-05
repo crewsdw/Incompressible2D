@@ -1,6 +1,5 @@
 import numpy as np
 import cupy as cp
-# from scipy.special import legendre
 import scipy.special as sp
 
 import matplotlib.pyplot as plt

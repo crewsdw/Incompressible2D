@@ -1,6 +1,5 @@
 import numpy as np
 import cupy as cp
-import scipy.special as sp
 
 # Set random state
 np.random.seed(126)
@@ -105,15 +104,6 @@ class Grid1D:
     def sum_fourier_to_linspace(self, coefficients, idx):
         return cp.tensordot(coefficients, self.lin_phases, axes=(idx, [0]))
 
-    # def inverse_transformation(self, coefficients, idx):
-    #     """
-    #     Experimental: invert Fourier transformation
-    #     """
-    #     return cp.real(cp.tensordot(self.inverse_transform, coefficients, axes=([2], idx)))
-    #
-    # def inverse_transformation_linspace(self, coefficients, idx):
-    #     return cp.real(cp.tensordot(self.inverse_transform, coefficients, axes=([2], idx)))
-
 
 class Grid2D:
     def __init__(self, basis, lows, highs, resolutions, fine_all=False, linspace=False):
@@ -187,8 +177,8 @@ class Scalar:
         y2 = cp.tensordot(cp.ones((self.x_res, self.x_ord)), grids.y.arr_cp, axes=0)
         # random function
         self.arr = cp.sin(x2) * cp.sin(y2) * cp.sin(3.0 * x2 + 3.0 * y2) * cp.cos(4.0 * x2 - 5.0 * y2)
-
-    def grid_flatten_gpu(self):
+    
+    def grid_flatten_arr(self):
         return self.arr.reshape((self.x_res * self.x_ord, self.y_res * self.y_ord))
 
 

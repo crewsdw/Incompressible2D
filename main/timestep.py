@@ -203,7 +203,11 @@ class Stepper:
         max0_wp = max_speeds[0]  # + np.sqrt(max_pressure)
         max1_wp = max_speeds[1]  # + np.sqrt(max_pressure)
         self.dt = self.courant / ((max0_wp / dx) + (max1_wp / dy) +
-                                  1.0 / max_pressure[0] + 1.0 / max_pressure[1]) / 4.0
+                                  1.0 / max_pressure[0] + 1.0 / max_pressure[1]) / 4.0 / 2.0
+        vis_dt = self.courant * dx * dx / 1.0e0 / (2.0 ** 0.5)
+        # print('\n')
+        # print(self.dt)
+        # print(vis_dt)
         # np.sqrt(max_pressure[0] / dx) + np.sqrt(max_pressure[1] / dy))
         # dt_source = self.courant / ()
         # print(self.dt)

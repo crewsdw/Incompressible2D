@@ -110,7 +110,7 @@ class DGFlux:
         """
         Add source terms in NS momentum equation point-wise: the pressure gradient and experimental_viscosity
         """
-        nu = 1.5e-1
+        nu = 1.0e0
 
         if self.experimental_viscosity:
             return nu * vector.laplacian(grids=grids) - elliptic.pressure_gradient.arr

@@ -1,0 +1,210 @@
+# Bin
+#
+# # Animation of streamlines
+# fig, ax = plt.subplots(1, 2, figsize=(16, 8), constrained_layout=True)
+# cb = np.linspace(0, np.sqrt(2.0) * np.amax(np.absolute(stepper.saved_array)), num=100)
+# # KX, KY = np.meshgrid(grids.x.wave_numbers, grids.y.wave_numbers, indexing='ij')
+#
+# # Colorbar
+# spectrum_x = grids.fourier_transform(function=cp.asarray(
+#         stepper.saved_array[-1][0, 1:-1, :, 1:-1, :]))
+# spectrum_y = grids.fourier_transform(function=cp.asarray(
+#         stepper.saved_array[-1][1, 1:-1, :, 1:-1, :]))
+# div = grids.inverse_transform_linspace(
+#         spectrum=(cp.multiply(1j * grids.x.d_wave_numbers[:, None], spectrum_x) +
+#                   cp.multiply(1j * grids.y.d_wave_numbers[None, :], spectrum_y))).get()
+# vor = grids.inverse_transform_linspace(
+#         spectrum=(cp.multiply(1j * grids.x.d_wave_numbers[:, None], spectrum_y) -
+#                   cp.multiply(1j * grids.y.d_wave_numbers[None, :], spectrum_x))).get()
+# cb_d = np.linspace(np.amin(div), np.amax(div), num=100)
+# cb_v = np.linspace(np.amin(vor), np.amax(vor), num=100)
+# print('Maximum divergence error is {:.2f}'.format(np.amax(np.absolute(cb_d))))
+#
+# # ax[v_idx].set_xlim(-L / 2, L / 2)
+# # ax[v_idx].set_ylim(-L / 2, L / 2)
+# # cb_v = np.linspace(np.amin(vorticity), np.amax(vorticity), num=100)
+# plt.figure()
+# plt.contourf(XE, YE, vor, cb_v, cmap=cmap)
+# plt.title(r'Fluid vorticity $\zeta(x,y)$, t={:.2f}'.format(stepper.saved_times[-1]))
+# plt.colorbar()
+# plt.tight_layout()
+#
+#
+# def animate_streamlines(idx):
+#     ax[0].collections = []
+#     ax[0].patches = []
+#     ax[1].collections = []
+#     ax[1].patches = []
+#
+#     # Obtain velocity
+#     spectrum_x = grids.fourier_transform(function=cp.asarray(
+#         stepper.saved_array[idx][0, 1:-1, :, 1:-1, :]))
+#     spectrum_y = grids.fourier_transform(function=cp.asarray(
+#         stepper.saved_array[idx][1, 1:-1, :, 1:-1, :]))
+#     UE = grids.inverse_transform_linspace(spectrum=spectrum_x)
+#     VE = grids.inverse_transform_linspace(spectrum=spectrum_y)
+#     V = cp.sqrt(UE ** 2.0 + VE ** 2.0).get()
+#     # Obtain spectrum
+#     # V_fg = np.sqrt(stepper.saved_array[idx][0, 1:-1, :, 1:-1, :] ** 2.0 +
+#     #                stepper.saved_array[idx][1, 1:-1, :, 1:-1, :] ** 2.0)
+#     # dV = V_fg - np.mean(V_fg)
+#     # spectrum_V = np.absolute(grids.fourier_transform(function=cp.asarray(dV)).get())
+#     # Obtain vorticity
+#     vorticity = grids.inverse_transform_linspace(
+#         spectrum=(cp.multiply(1j * grids.x.d_wave_numbers[:, None], spectrum_y) -
+#                   cp.multiply(1j * grids.y.d_wave_numbers[None, :], spectrum_x))
+#     ).get()
+#
+#     # Obtain divergence
+#     # divergence = grids.inverse_transform_linspace(
+#     #     spectrum=(cp.multiply(1j * grids.x.d_wave_numbers[:, None], spectrum_x) +
+#     #               cp.multiply(1j * grids.y.d_wave_numbers[None, :], spectrum_y))
+#     # ).get()
+#
+#     # Plot fluid momentum
+#     m_idx = 0
+#     ax[m_idx].set_xlim(-L / 2, L / 2)
+#     ax[m_idx].set_ylim(-L / 2, L / 2)
+#     cb = np.linspace(0, np.amax(V), num=100)
+#     ax[m_idx].contourf(XE, YE, V, cb, cmap=cmap)
+#     ax[m_idx].set_title(r'Fluid momentum $|v|(x,y)$')
+#
+#     # Plot momentum spectrum
+#     # ax[1].set_xlim(-20, 20)
+#     # ax[1].set_ylim(-20, 20)
+#     # ax[1].contourf(KX, KY, spectrum_V, levels=np.linspace(0, np.amax(spectrum_V), num=100))
+#     # ax[1].set_title(r'Spectrum $|v|(kx,ky)$')
+#
+#     # Plot vorticity
+#     v_idx = 1
+#     ax[v_idx].set_xlim(-L / 2, L / 2)
+#     ax[v_idx].set_ylim(-L / 2, L / 2)
+#     cb_v = np.linspace(np.amin(vorticity), np.amax(vorticity), num=100)
+#     ax[v_idx].contourf(XE, YE, vorticity, cb_v, cmap=cmap)
+#     ax[v_idx].set_title(r'Fluid vorticity $\zeta(x,y)$')
+#     # fig.colorbar(cfv, ax=ax[v_idx])
+#     fig.suptitle('Time t=' + str(stepper.saved_times[idx]))
+#
+#     # Plot divergence
+#     # d_idx = 1
+#     # ax[d_idx].set_xlim(-L / 2, L / 2)
+#     # ax[d_idx].set_ylim(-L / 2, L / 2)
+#     # ax[d_idx].contourf(XE, YE, divergence, cb_d)
+#     # ax[d_idx].set_title(r'Momentum divergence $\nabla\cdot v(x,y)$')
+#     # fig.colorbar(cfd, ax=ax[d_idx])
+#
+#     # Figure super title
+#     fig.suptitle('Time t={:.2f}'.format(stepper.saved_times[idx]))
+#
+#     # ax.streamplot(YE, XE,
+#     #               UE.get().transpose(), VE.get().transpose(),
+#     #               density=2.0, start_points=start_points, color=V)
+#     # ax.set_title('Streamlines, t=' + str(stepper.saved_times[idx]))
+#     # plt.show()
+#     # print('finishing interpolation')
+#
+#
+# anim_str = animation.FuncAnimation(fig, animate_streamlines, frames=len(stepper.saved_array))
+# anim_str.save(filename='..\\movies\\animation.mp4')
+# # anim_vel = animation.FuncAnimation(fig, animate_velocity, frames=len(stepper.saved_array))
+#
+# plt.show()
+
+# # Velocity-gradient tensor
+# velocity.gradient_tensor(grids=grids)
+# velocity.poisson_source()
+#
+# if plot_IC:
+#     plt.figure()
+#     cb = np.linspace(cp.amin(velocity.grad), cp.amax(velocity.grad), num=100).get()
+#     plt.contourf(X[ng], Y[ng], velocity.grid_flatten_grad().get()[nt00], cb)
+#     plt.xlabel('x')
+#     plt.ylabel('y')
+#     plt.title('xx-component')
+#     plt.colorbar()
+#
+#     plt.figure()
+#     cb = np.linspace(cp.amin(velocity.grad), cp.amax(velocity.grad), num=100).get()
+#     plt.contourf(X[ng], Y[ng], velocity.grid_flatten_grad().get()[nt01], cb)
+#     plt.xlabel('x')
+#     plt.ylabel('y')
+#     plt.title('xy-component')
+#     plt.colorbar()
+#
+#     plt.figure()
+#     cb = np.linspace(cp.amin(velocity.grad), cp.amax(velocity.grad), num=100).get()
+#     plt.contourf(X[ng], Y[ng], velocity.grid_flatten_grad().get()[nt10], cb)
+#     plt.xlabel('x')
+#     plt.ylabel('y')
+#     plt.title('yx-component')
+#     plt.colorbar()
+#
+#     plt.figure()
+#     cb = np.linspace(cp.amin(velocity.grad), cp.amax(velocity.grad), num=100).get()
+#     plt.contourf(X[ng], Y[ng], velocity.grid_flatten_grad().get()[nt11], cb)
+#     plt.xlabel('x')
+#     plt.ylabel('y')
+#     plt.title('yy-component')
+#     plt.colorbar()
+#
+#     plt.figure()
+#     cb = np.linspace(cp.amin(velocity.pressure_source), cp.amax(velocity.pressure_source), num=100).get()
+#     plt.contourf(X[ng], Y[ng], velocity.grid_flatten_source().get(), cb)
+#     plt.xlabel('x')
+#     plt.ylabel('y')
+#     plt.title('pressure poisson source')
+#     plt.colorbar()
+#
+#     plt.show()
+
+# Fourier transform pressure source
+# spectrum = grids.fourier_transform(function=velocity.pressure_source)
+#
+# KX, KY = np.meshgrid(grids.x.wave_numbers, grids.y.wave_numbers, indexing='ij')
+#
+# plt.figure()
+# cb = np.linspace(cp.amin(cp.real(spectrum)), cp.amax(cp.real(spectrum)), num=100).get()
+# plt.contourf(KX, KY, np.real(spectrum.get()), cb)
+# plt.xlabel('kx')
+# plt.ylabel('ky')
+#
+# plt.figure()
+# cb = np.linspace(cp.amin(cp.imag(spectrum)), cp.amax(cp.imag(spectrum)), num=100).get()
+# plt.contourf(KX, KY, np.imag(spectrum.get()), cb)
+# plt.xlabel('kx')
+# plt.ylabel('ky')
+# plt.show()
+#
+# # Solve Poisson
+# ikx = cp.tensordot(grids.x.d_wave_numbers, cp.ones_like(grids.y.wave_numbers), axes=0)
+# iky = cp.tensordot(cp.ones_like(grids.x.wave_numbers), grids.y.d_wave_numbers, axes=0)
+#
+# poisson_spectrum = -1.0 * cp.divide(spectrum, ikx ** 2.0 + iky ** 2.0)
+# poisson_spectrum = cp.nan_to_num(poisson_spectrum)
+#
+# # Resum spectrum
+# potential = g.Scalar(resolutions=resolutions_ghosts, orders=orders)
+# potential.arr = cp.zeros_like(source.arr)
+# potential.arr[1:-1, :, 1:-1, :] = grids.inverse_transform(spectrum=poisson_spectrum)
+
+# Experiment with 1D inversion
+# y = cp.sin(grids.x.arr_cp[1:-1, :]) # + cp.cos(2.0 * grids.x.arr_cp[1:-1, :]) + cp.sin(10.0 * grids.x.arr_cp[1:-1, :])
+# spectrum_1d = grids.x.fourier_basis(function=y, idx=[0, 1])
+#
+# # Inverse transform array
+# inverse = grids.x.inverse_transformation(coefficients=spectrum_1d, idx=[0])
+#
+# plt.figure()
+# plt.semilogy(grids.x.wave_numbers, np.absolute(spectrum_1d.get()), 'o--')
+# plt.xlabel('k')
+# plt.ylabel(r'spectrum $|c(k)|$')
+#
+# plt.figure()
+# plt.plot(grids.x.arr[1:-1, :].flatten(), y.get().flatten(), 'o--')
+# plt.plot(grids.x.arr[1:-1, :].flatten(), np.real(inverse.get().flatten()), 'o--')
+# plt.xlabel('x')
+# plt.ylabel('y')
+# plt.show()
+# print(spectrum_1d.shape)
+#
+# quit()
