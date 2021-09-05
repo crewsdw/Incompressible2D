@@ -2,7 +2,7 @@ import numpy as np
 import cupy as cp
 import time as timer
 import grid as g
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 # import copy
 
@@ -195,16 +195,13 @@ class Stepper:
 
         # Update distribution
         vector.arr[vector.no_ghost_slice] = stage2.arr[vector.no_ghost_slice]
-        # Filter
-        # vector.filter(grids=grids)
-
-    def adapt_time_step(self, max_speeds, min_pressure_dt, dx, dy):
-        max_pressure = min_pressure_dt
+    
+    def adapt_time_step(self, max_speeds, pressure_dt, dx, dy):
         max0_wp = max_speeds[0]  # + np.sqrt(max_pressure)
         max1_wp = max_speeds[1]  # + np.sqrt(max_pressure)
         self.dt = self.courant / ((max0_wp / dx) + (max1_wp / dy) +
-                                  1.0 / max_pressure[0] + 1.0 / max_pressure[1]) / 4.0 / 2.0
-        vis_dt = self.courant * dx * dx / 1.0e0 / (2.0 ** 0.5)
+                                  1.0 / pressure_dt[0] + 1.0 / pressure_dt[1]) / 4.0 / 2.0
+        # vis_dt = self.courant * dx * dx / 1.0e0 / (2.0 ** 0.5)
         # print('\n')
         # print(self.dt)
         # print(vis_dt)
@@ -222,9 +219,7 @@ def get_max_speeds(vector):
                      cp.amax(cp.absolute(vector.arr[1, :, :, :, :]))])
 
 
-def get_min_pressure(vector, elliptic):
-    # return cp.array([cp.amax(cp.absolute(elliptic.pressure_gradient.arr[0, :, :, :, :])),
-    #                  cp.amax(cp.absolute(elliptic.pressure_gradient.arr[1, :, :, :, :]))])
+def estimate_pressure_dt(vector, elliptic):
     return cp.array([cp.amax(cp.absolute(vector.arr[0, :, :, :, :])) /
                      cp.amax(cp.absolute(elliptic.pressure_gradient.arr[0, :, :, :, :])),
                      cp.amax(cp.absolute(vector.arr[1, :, :, :, :])) /
