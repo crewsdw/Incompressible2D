@@ -160,8 +160,7 @@ class Stepper:
         elliptic.pressure_solve(velocity=vector, grids=grids)
         # Adapt time-step
         self.adapt_time_step(max_speeds=get_max_speeds(vector=vector),
-                             min_pressure_dt=get_min_pressure(vector=vector, elliptic=elliptic),
-                             # cp.amax(cp.absolute(elliptic.pressure.arr)).get(),
+                             pressure_dt=estimate_pressure_dt(vector=vector, elliptic=elliptic),
                              dx=grids.x.dx, dy=grids.y.dx)
         # Continue zero stage
         stage0.arr[vector.no_ghost_slice] = (vector.arr[vector.no_ghost_slice]
