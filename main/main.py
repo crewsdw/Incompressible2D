@@ -34,8 +34,8 @@ final_time = 0.31  # 13.0  # 10.0 * np.pi
 write_time = 0.05
 
 # Initialize variable
-source = g.Scalar(resolutions=resolutions_ghosts, orders=orders)
-source.initialize(grids=grids)
+# source = g.Scalar(resolutions=resolutions_ghosts, orders=orders)
+# source.initialize(grids=grids)
 
 # Initialize vector-valued variable
 velocity = g.Vector(resolutions=resolutions_ghosts, orders=orders)
