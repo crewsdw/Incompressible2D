@@ -31,12 +31,12 @@ resolutions_ghosts = np.array([res_x + 2, res_y + 2])
 grids = g.Grid2D(basis=basis, lows=lows, highs=highs, resolutions=resolutions, linspace=True)
 
 # Time info
-final_time = 2.0  # 13.0  # 10.0 * np.pi
-write_time = 0.05
+final_time = 1.5  # 13.0  # 10.0 * np.pi
+write_time = 0.1
 
 # Initialize vector-valued variable
 velocity = g.Vector(resolutions=resolutions_ghosts, orders=orders)
-velocity.initialize(grids=grids, numbers=[2, 3, 4])
+velocity.initialize(grids=grids, numbers=[1, 2, 3, 4])
 
 # Test elliptic class and pressure solve
 elliptic = ell.Elliptic(grids=grids)
