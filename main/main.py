@@ -9,6 +9,7 @@ import plotter as my_plt
 # Parameters
 order = 8
 res_x, res_y = 25, 25
+nu = 2.0e-2
 
 # Flags
 plot_IC = True
@@ -33,13 +34,9 @@ grids = g.Grid2D(basis=basis, lows=lows, highs=highs, resolutions=resolutions, l
 final_time = 0.31  # 13.0  # 10.0 * np.pi
 write_time = 0.05
 
-# Initialize variable
-# source = g.Scalar(resolutions=resolutions_ghosts, orders=orders)
-# source.initialize(grids=grids)
-
 # Initialize vector-valued variable
 velocity = g.Vector(resolutions=resolutions_ghosts, orders=orders)
-velocity.initialize(grids=grids)
+velocity.initialize(grids=grids, numbers=[2, 3, 4])
 
 # Test elliptic class and pressure solve
 elliptic = ell.Elliptic(grids=grids)
@@ -58,7 +55,7 @@ if plot_IC:
 
 # Try solution to some time
 dg_flux = fx.DGFlux(resolutions=resolutions_ghosts, orders=orders,
-                    experimental_viscosity=experimental_viscosity)
+                    experimental_viscosity=experimental_viscosity, nu=nu)
 stepper = ts.Stepper(time_order=3, space_order=order,
                      write_time=write_time, final_time=final_time)
 

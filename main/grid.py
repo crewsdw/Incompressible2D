@@ -204,25 +204,18 @@ class Vector:
                                slice(1, self.x_res - 1), slice(self.x_ord),
                                slice(1, self.y_res - 1), slice(self.y_ord))
 
-    def initialize(self, grids):
-        # Just sine product...
+    def initialize(self, grids, numbers=None):
+        # default argument
+        if numbers is None:
+            numbers = [2, 3, 4]
+        # temp grid variables
         x2 = cp.tensordot(grids.x.arr_cp, cp.ones((self.y_res, self.y_ord)), axes=0)
         y2 = cp.tensordot(cp.ones((self.x_res, self.x_ord)), grids.y.arr_cp, axes=0)
 
         # 2D ABC flow superposition
-        number = [1, 2, 3, 4, 5]
-        p = np.pi * np.random.randn(len(number))  # phases
-        # print(p)
-        arr_x = sum([cp.cos(number * y2 + p[idx]) for idx, number in enumerate(number)])
-        arr_y = sum([cp.sin(number * x2 + p[idx]) for idx, number in enumerate(number)])
-        # arr_x = cp.cos(y2) + cp.cos(2*y2)
-        # arr_y = cp.sin(x2) + cp.sin(2*x2)
-        # arr_x = cp.cos(y2) + cp.cos
-        # arr_y = cp.ones_like(arr_x)
-        # arr_x = cp.cos(x2)*cp.sin(y2) - cp.cos(3.0*x2)*cp.sin(3.0*y2)
-        # arr_y = -cp.sin(x2)*cp.cos(y2) + cp.sin(3.0*x2)*cp.cos(3.0*y2)
-        # arr_x = cp.cos(y2) + cp.cos(x2)*cp.sin(y2)
-        # arr_y = cp.sin(x2) - cp.sin(x2)*cp.cos(y2)
+        p = np.pi * np.random.randn(len(numbers))  # phases
+        arr_x = sum([cp.cos(number * y2 + p[idx]) for idx, number in enumerate(numbers)])
+        arr_y = sum([cp.sin(number * x2 + p[idx]) for idx, number in enumerate(numbers)])
 
         self.arr = cp.array([arr_x, arr_y])
 

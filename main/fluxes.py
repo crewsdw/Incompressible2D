@@ -8,12 +8,12 @@ def basis_product(flux, basis_arr, axis, permutation):
 
 
 class DGFlux:
-    def __init__(self, resolutions, orders, experimental_viscosity=False):
+    def __init__(self, resolutions, orders, experimental_viscosity=False, nu=1.0e-2):
+        # Parameters
         self.resolutions = resolutions
         self.orders = orders
+        self.nu = nu  # viscosity value
         # Permutations
-        # self.permutations = [(0, 3, 1, 2),  # For contraction with x nodes
-        #                      (0, 1, 2, 3)]  # For contraction with y nodes
         self.permutations = [(0, 1, 4, 2, 3),  # For contraction with x nodes
                              (0, 1, 2, 3, 4)]  # For contraction with y nodes
         # Boundary slices
@@ -110,9 +110,7 @@ class DGFlux:
         """
         Add source terms in NS momentum equation point-wise: the pressure gradient and experimental_viscosity
         """
-        nu = 1.0e0
-
         if self.experimental_viscosity:
-            return nu * vector.laplacian(grids=grids) - elliptic.pressure_gradient.arr
+            return self.nu * vector.laplacian(grids=grids) - elliptic.pressure_gradient.arr
         else:
             return -1.0 * elliptic.pressure_gradient.arr

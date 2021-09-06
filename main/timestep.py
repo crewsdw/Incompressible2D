@@ -112,36 +112,12 @@ class Stepper:
                 self.saved_times += [self.time]
                 # Filter
                 vector.filter(grids=grids)
-                # print(self.saved_array[0].shape)
-                # print(self.saved_array[1].shape)
-                # quit()
-                # save_file.save_data(vector=vector.arr.get(),
-                #                     elliptic=elliptic,
-                #                     density=distribution.moment_zero(),
-                #                     time=self.time,
-                #                     field_energy=energy)
-                # print('Done.')
                 print('The simulation time is {:0.3e}'.format(self.time))
                 print('The time-step is {:0.3e}'.format(self.dt.get()))
                 print('Time since start is ' + str((timer.time() - t0) / 60.0) + ' minutes')
             if cp.isnan(vector.arr).any():
                 print('\nCaught a nan at ' + str(self.steps_counter))
                 return
-            # if self.steps_counter == 10 * (2.0 ** self.test_number):
-            #     self.write_counter += 1
-            #     print('Saving data...')
-            #     save_file.save_data(distribution=distribution.arr.get(),
-            #                         elliptic=elliptic,
-            #                         density=distribution.moment_zero(),
-            #                         time=self.time,
-            #                         field_energy=energy)
-            #     print('\nAll done at step ' + str(self.steps_counter))
-            #     print('The simulation time is {:0.3e}'.format(self.time))
-            #     print('The time-step is {:0.3e}'.format(self.dt))
-            #     print('Time since start is ' + str((timer.time() - t0) / 60.0) + ' minutes')
-            #     break
-            # quit()
-
         print('\nFinal time reached')
         print('Total steps were ' + str(self.steps_counter))
 
