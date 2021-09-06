@@ -9,7 +9,7 @@ import plotter as my_plt
 # Parameters
 order = 8
 res_x, res_y = 25, 25
-nu = 2.0e-2
+nu = 1.0e-2
 
 # Flags
 plot_IC = True
@@ -31,7 +31,7 @@ resolutions_ghosts = np.array([res_x + 2, res_y + 2])
 grids = g.Grid2D(basis=basis, lows=lows, highs=highs, resolutions=resolutions, linspace=True)
 
 # Time info
-final_time = 0.31  # 13.0  # 10.0 * np.pi
+final_time = 2.0  # 13.0  # 10.0 * np.pi
 write_time = 0.05
 
 # Initialize vector-valued variable
