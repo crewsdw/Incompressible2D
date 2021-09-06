@@ -176,7 +176,7 @@ class Plotter2D:
             ax[v_idx].set_title(r'Fluid vorticity $\zeta(x,y)$')
 
             # set figure title
-            fig.suptitle('Time t=' + str(stepper.saved_times[idx]))
+            fig.suptitle('Time t={:0.3f}'.format(stepper.saved_times[idx]))
 
         anim_str = animation.FuncAnimation(fig, animate_frame, frames=len(stepper.saved_array))
         anim_str.save(filename='..\\movies\\animation.mp4')
