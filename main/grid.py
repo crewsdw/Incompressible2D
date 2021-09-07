@@ -4,6 +4,7 @@ import cupy as cp
 # Set random state
 np.random.seed(126)
 
+
 # For debug
 # import matplotlib.pyplot as plt
 
@@ -120,6 +121,9 @@ class Grid2D:
         self.kr_sq = (outer2(self.x.d_wave_numbers, cp.ones_like(self.y.d_wave_numbers)) ** 2.0 +
                       outer2(cp.ones_like(self.x.d_wave_numbers), self.y.d_wave_numbers) ** 2.0)
 
+        # wave number vector
+        self.wave_numbers = cp.array([self.x.d_wave_numbers, self.y.d_wave_numbers])
+
     def fourier_transform(self, function):
         # Transform function on a 2D grid
         x_transform = cp.transpose(self.x.fourier_basis(function=function, idx=[0, 1]),
@@ -177,7 +181,7 @@ class Scalar:
         y2 = cp.tensordot(cp.ones((self.x_res, self.x_ord)), grids.y.arr_cp, axes=0)
         # random function
         self.arr = cp.sin(x2) * cp.sin(y2) * cp.sin(3.0 * x2 + 3.0 * y2) * cp.cos(4.0 * x2 - 5.0 * y2)
-    
+
     def grid_flatten_arr(self):
         return self.arr.reshape((self.x_res * self.x_ord, self.y_res * self.y_ord))
 
@@ -197,6 +201,7 @@ class Vector:
         self.arr = None
         self.arr_stages = None
         self.grad = None
+        self.dyad_spectrum = None
         self.pressure_source = None
 
         # no ghost slice
@@ -247,6 +252,19 @@ class Vector:
         """
         self.pressure_source = -1.0 * cp.einsum('ijklnm,jiklnm->klnm', self.grad, self.grad)
 
+    def dyad_transform(self, grids):
+        """
+        Experimental: compute spectrum of the dyad v_i * v_j
+        """
+        k_xx = grids.fourier_transform(function=cp.multiply(self.arr[0, 1:-1, :, 1:-1, :],
+                                                            self.arr[0, 1:-1, :, 1:-1, :]))
+        k_xy = grids.fourier_transform(function=cp.multiply(self.arr[0, 1:-1, :, 1:-1, :],
+                                                            self.arr[1, 1:-1, :, 1:-1, :]))
+        k_yy = grids.fourier_transform(function=cp.multiply(self.arr[1, 1:-1, :, 1:-1, :],
+                                                            self.arr[1, 1:-1, :, 1:-1, :]))
+
+        self.dyad_spectrum = cp.array([[k_xx, k_xy], [k_xy, k_yy]])
+
     def grid_flatten_arr(self):
         return self.arr.reshape((2, self.x_res * self.x_ord, self.y_res * self.y_ord))
 
@@ -280,6 +298,25 @@ class Vector:
         laplacian[:, 1:-1, :, 1:-1, :] = cp.array([grids.laplacian(function=self.arr[0, 1:-1, :, 1:-1, :]),
                                                    grids.laplacian(function=self.arr[1, 1:-1, :, 1:-1, :])])
         return laplacian
+
+    def flux_divergence(self, grids):
+        """
+        Return the vector laplacian on the given grids
+        :param grids: Grids2D object
+        :return: flux divergence d_i * (v_i * v_j) of size (2, Nx, n, Ny, n)
+        """
+        flux_divergence = cp.zeros_like(self.arr)
+        # Compute transform of flux tensor (v_i * v_j)
+        self.dyad_transform(grids=grids)
+        # Compute spectral divergence of flux tensor
+        k_flux_divergence = (
+                cp.multiply(1j * grids.x.d_wave_numbers[None, :, None], self.dyad_spectrum[:, 0, :, :]) +
+                cp.multiply(1j * grids.y.d_wave_numbers[None, None, :], self.dyad_spectrum[:, 1, :, :])
+        )
+        # Inverse transform
+        flux_divergence[:, 1:-1, :, 1:-1, :] = cp.array([grids.inverse_transform(spectrum=k_flux_divergence[0, :, :]),
+                                                         grids.inverse_transform(spectrum=k_flux_divergence[1, :, :])])
+        return flux_divergence
 
 
 def outer2(a, b):

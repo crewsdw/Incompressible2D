@@ -1,10 +1,29 @@
 import numpy as np
 import cupy as cp
 
+import matplotlib.pyplot as plt
+
 
 def basis_product(flux, basis_arr, axis, permutation):
     return cp.transpose(cp.tensordot(flux, basis_arr, axes=([axis], [1])),
                         axes=permutation)
+
+
+class Spectral:
+    def __init__(self, resolutions, orders, nu=1.0e-2):
+        # Parameters
+        self.resolutions = resolutions
+        self.orders = orders
+        self.nu = nu  # viscosity value
+
+    def semi_discrete_rhs(self, vector, elliptic, basis, grids):
+        """
+        Experiment: Compute the semi-discrete right-hand side using a purely spectral method
+        """
+        # Compute right-hand side
+        return (self.nu * vector.laplacian(grids=grids) -
+                elliptic.pressure_gradient.arr -
+                vector.flux_divergence(grids=grids))
 
 
 class DGFlux:
@@ -55,6 +74,23 @@ class DGFlux:
         """
         Calculate the right-hand side of semi-discrete equation
         """
+        # X, Y = np.meshgrid(grids.x.arr[1:-1, :].flatten(),
+        #                    grids.y.arr[1:-1, :].flatten(), indexing='ij')
+        # x_flux = ((self.x_flux(vector=vector, basis=basis.basis_x) * grids.x.J) +
+        #           (self.y_flux(vector=vector, basis=basis.basis_y) * grids.y.J))[0, 1:-1, :, 1:-1, :]
+        # y_flux = ((self.x_flux(vector=vector, basis=basis.basis_x) * grids.x.J) +
+        #           (self.y_flux(vector=vector, basis=basis.basis_y) * grids.y.J))[1, 1:-1, :, 1:-1, :]
+        # x_flux_flat = x_flux.reshape((x_flux.shape[0] * x_flux.shape[1], x_flux.shape[2] * x_flux.shape[3]))
+        # y_flux_flat = y_flux.reshape((x_flux.shape[0] * x_flux.shape[1], x_flux.shape[2] * x_flux.shape[3]))
+        # plt.figure()
+        # plt.contourf(X, Y, x_flux_flat.get())
+        # plt.colorbar()
+        # plt.figure()
+        # plt.contourf(X, Y, y_flux_flat.get())
+        # plt.colorbar()
+        # plt.show()
+        # quit()
+
         return ((self.x_flux(vector=vector, basis=basis.basis_x) * grids.x.J) +
                 (self.y_flux(vector=vector, basis=basis.basis_y) * grids.y.J) +
                 self.source_term(elliptic=elliptic, vector=vector, grids=grids))
@@ -114,3 +150,25 @@ class DGFlux:
             return self.nu * vector.laplacian(grids=grids) - elliptic.pressure_gradient.arr
         else:
             return -1.0 * elliptic.pressure_gradient.arr
+
+# Temp bin
+
+# v_dot_grad_v_spectrum = (cp.multiply(1j * grids.x.d_wave_numbers[None, :, None], vector.dyad_spectrum[:, 0, :, :]) +
+#                          cp.multiply(1j * grids.y.d_wave_numbers[None, None, :], vector.dyad_spectrum[:, 1, :, :]))
+# print(v_dot_grad_v_spectrum.shape)
+# flux_x = grids.inverse_transform(spectrum=v_dot_grad_v_spectrum[0, :, :])
+# flux_y = grids.inverse_transform(spectrum=v_dot_grad_v_spectrum[1, :, :])
+# flux_x_grid = flux_x.reshape((flux_x.shape[0] * flux_x.shape[1], flux_x.shape[2] * flux_x.shape[3]))
+# flux_y_grid = flux_y.reshape((flux_x.shape[0] * flux_x.shape[1], flux_x.shape[2] * flux_x.shape[3]))
+
+# X, Y = np.meshgrid(grids.x.arr[1:-1, :].flatten(),
+#                    grids.y.arr[1:-1, :].flatten(), indexing='ij')
+#
+# plt.figure()
+# plt.contourf(X, Y, flux_x_grid.get())
+# plt.colorbar()
+# plt.figure()
+# plt.contourf(X, Y, flux_y_grid.get())
+# plt.colorbar()
+# plt.show()
+# quit()

@@ -31,8 +31,8 @@ resolutions_ghosts = np.array([res_x + 2, res_y + 2])
 grids = g.Grid2D(basis=basis, lows=lows, highs=highs, resolutions=resolutions, linspace=True)
 
 # Time info
-final_time = 1.5  # 13.0  # 10.0 * np.pi
-write_time = 0.1
+final_time = 2.0
+write_time = 0.05
 
 # Initialize vector-valued variable
 velocity = g.Vector(resolutions=resolutions_ghosts, orders=orders)
@@ -54,8 +54,9 @@ if plot_IC:
     plotter.show()
 
 # Try solution to some time
-dg_flux = fx.DGFlux(resolutions=resolutions_ghosts, orders=orders,
-                    experimental_viscosity=experimental_viscosity, nu=nu)
+# dg_flux = fx.DGFlux(resolutions=resolutions_ghosts, orders=orders,
+#                     experimental_viscosity=experimental_viscosity, nu=nu)
+dg_flux = fx.Spectral(resolutions=resolutions_ghosts, orders=orders, nu=nu)
 stepper = ts.Stepper(time_order=3, space_order=order,
                      write_time=write_time, final_time=final_time)
 

@@ -119,7 +119,7 @@ class Stepper:
                 print('\nCaught a nan at ' + str(self.steps_counter))
                 return
         print('\nFinal time reached')
-        print('Total steps were ' + str(self.steps_counter))
+        print('Total steps were ' + str(self.steps_counter) + ' with ' + str(self.write_counter) + ' write-outs')
 
     def nonlinear_ssp_rk(self, vector, basis, elliptic, grids, dg_flux):  # , refs):
         # Sync ghost cells
@@ -175,7 +175,7 @@ class Stepper:
         max0_wp = max_speeds[0]  # + np.sqrt(max_pressure)
         max1_wp = max_speeds[1]  # + np.sqrt(max_pressure)
         self.dt = self.courant / ((max0_wp / dx) + (max1_wp / dy) +
-                                  1.0 / pressure_dt[0] + 1.0 / pressure_dt[1]) / 4.0
+                                  1.0 / pressure_dt[0] + 1.0 / pressure_dt[1]) * 4.0
         # vis_dt = self.courant * dx * dx / 1.0e0 / (2.0 ** 0.5)
         # print('\n')
         # print(self.dt)
