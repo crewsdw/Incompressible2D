@@ -110,8 +110,8 @@ class Stepper:
                 print('Saving data...')
                 self.saved_array += [vector.arr.get()]
                 self.saved_times += [self.time]
-                # Filter
-                vector.filter(grids=grids)
+                # Filter (no longer necessary?)
+                # vector.filter(grids=grids)
                 print('The simulation time is {:0.3e}'.format(self.time))
                 print('The time-step is {:0.3e}'.format(self.dt.get()))
                 print('Time since start is ' + str((timer.time() - t0) / 60.0) + ' minutes')
@@ -175,7 +175,7 @@ class Stepper:
         max0_wp = max_speeds[0]  # + np.sqrt(max_pressure)
         max1_wp = max_speeds[1]  # + np.sqrt(max_pressure)
         self.dt = self.courant / ((max0_wp / dx) + (max1_wp / dy) +
-                                  1.0 / pressure_dt[0] + 1.0 / pressure_dt[1]) * 4.0
+                                  1.0 / pressure_dt[0] + 1.0 / pressure_dt[1]) * 1.0
         # vis_dt = self.courant * dx * dx / 1.0e0 / (2.0 ** 0.5)
         # print('\n')
         # print(self.dt)

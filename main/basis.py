@@ -5,6 +5,20 @@ import scipy.special as sp
 import matplotlib.pyplot as plt
 
 # Legendre-Gauss-Lobatto nodes and quadrature weights dictionaries
+gl_nodes = {
+    8: [-0.9602898564975362316836, -0.7966664774136267395916,
+        -0.5255324099163289858177, -0.1834346424956498049395,
+        0.1834346424956498049395, 0.5255324099163289858177,
+        0.7966664774136267395916, 0.9602898564975362316836]
+}
+
+gl_weights = {
+    8: [0.1012285362903762591525, 0.2223810344533744705444,
+        0.313706645877887287338, 0.3626837833783619829652,
+        0.3626837833783619829652, 0.313706645877887287338,
+        0.222381034453374470544, 0.1012285362903762591525]
+}
+
 lgl_nodes = {
     1: [0],
     2: [-1, 1],
@@ -84,13 +98,17 @@ lgl_weights = {
 
 
 class Basis1D:
-    def __init__(self, order):
+    def __init__(self, order, lobatto=True):
+        # lobatto or non-lobatto flag
+        self.lobatto = lobatto
+        # parameters
         self.order = int(order)
         self.nodes = self.get_nodes()
         self.weights = self.get_weights()
-        self.eigenvalues = self.set_eigenvalues()
+        self.eigenvalues = None
 
         # Vandermonde and inverse
+        self.set_eigenvalues()
         self.vandermonde = self.set_vandermonde()
         self.vandermonde_inverse = self.set_vandermonde_inverse()
 
@@ -116,20 +134,27 @@ class Basis1D:
         self.der = self.derivative_matrix()
 
     def get_nodes(self):
-        nodes = lgl_nodes.get(self.order, "nothing")
+        if self.lobatto:
+            nodes = lgl_nodes.get(self.order, "nothing")
+        else:
+            nodes = gl_nodes.get(self.order, "nothing")
         return nodes
 
     def get_weights(self):
-        weights = lgl_weights.get(self.order, "nothing")
+        if self.lobatto:
+            weights = lgl_weights.get(self.order, "nothing")
+        else:
+            weights = gl_weights.get(self.order, "nothing")
         return weights
 
     def set_eigenvalues(self):
         # Legendre-Lobatto "eigenvalues"
         eigenvalues = np.array([(2.0 * s + 1) / 2.0 for s in range(self.order - 1)])
 
-        # if self.order == 1:
-        #    eigenvalues = 1 / 2
-        return np.append(eigenvalues, (self.order - 1) / 2.0)
+        if self.lobatto:
+            self.eigenvalues = np.append(eigenvalues, (self.order - 1) / 2.0)
+        else:
+            self.eigenvalues = np.append(eigenvalues, (2.0 * self.order - 1) / 2.0)
 
     def set_vandermonde(self):
         return np.array([[sp.legendre(s)(self.nodes[j])
@@ -249,7 +274,8 @@ class Basis1D:
         # next_step = np.matmul(self.vandermonde.T, p_tilde)
         vandermonde_contraction = np.array(sum(self.vandermonde[i, :] for i in range(self.order)))
         spherical_summation = np.array(sum((signs ** s) * ((-1j) ** s) *  # np.exp(-1j * np.pi / 2.0 * s) *
-                                (sp.spherical_jn(s, np.absolute(wave_numbers) / J)) for s in range(self.order)))
+                                           (sp.spherical_jn(s, np.absolute(wave_numbers) / J)) for s in
+                                           range(self.order)))
         # print(vandermonde_contraction.shape)
         # print(spherical_contraction.shape)
 
@@ -306,11 +332,10 @@ def sparse_tensors(tensor):
 
 
 class Basis2D:
-    def __init__(self, orders):
-        # self.orders = orders
+    def __init__(self, orders, lobatto=True):
         # Build 1D bases
-        self.basis_x = Basis1D(orders[0])
-        self.basis_y = Basis1D(orders[0])
+        self.basis_x = Basis1D(orders[0], lobatto=lobatto)
+        self.basis_y = Basis1D(orders[1], lobatto=lobatto)
 
 # class Basis3D:
 #     def __init__(self, orders):

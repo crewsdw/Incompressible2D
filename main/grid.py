@@ -45,7 +45,7 @@ class Grid1D:
                                       for i in range(self.res_ghosts)])
 
         if linspace:
-            lin_num = 150
+            lin_num = 400
             self.arr_lin = np.linspace(self.low, self.high, num=lin_num)
 
         # spectral coefficients
@@ -305,6 +305,7 @@ class Vector:
         :param grids: Grids2D object
         :return: flux divergence d_i * (v_i * v_j) of size (2, Nx, n, Ny, n)
         """
+        # Allocate
         flux_divergence = cp.zeros_like(self.arr)
         # Compute transform of flux tensor (v_i * v_j)
         self.dyad_transform(grids=grids)

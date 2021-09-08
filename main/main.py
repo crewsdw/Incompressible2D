@@ -8,17 +8,18 @@ import plotter as my_plt
 
 # Parameters
 order = 8
-res_x, res_y = 25, 25
-nu = 1.0e-2
+res_x, res_y = 50, 50
+nu = 1.0e-3
 
 # Flags
 plot_IC = True
 experimental_viscosity = True
+lobatto = False  # True->Lobatto-Gauss-Legendre, False->Gauss-Legendre
 
 # Build basis
 print('Initializing basis...')
 orders = np.array([order, order])
-basis = b.Basis2D(orders)
+basis = b.Basis2D(orders, lobatto=lobatto)
 
 # Initialize grids
 print('\nInitializing grids...')
@@ -31,12 +32,12 @@ resolutions_ghosts = np.array([res_x + 2, res_y + 2])
 grids = g.Grid2D(basis=basis, lows=lows, highs=highs, resolutions=resolutions, linspace=True)
 
 # Time info
-final_time = 2.0
+final_time = 5.0
 write_time = 0.05
 
 # Initialize vector-valued variable
 velocity = g.Vector(resolutions=resolutions_ghosts, orders=orders)
-velocity.initialize(grids=grids, numbers=[1, 2, 3, 4])
+velocity.initialize(grids=grids, numbers=[1, 2, 3, 4, 5])
 
 # Test elliptic class and pressure solve
 elliptic = ell.Elliptic(grids=grids)
