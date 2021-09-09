@@ -152,27 +152,30 @@ class Plotter2D:
                 stepper.saved_array[idx][0, 1:-1, :, 1:-1, :]))
             spectrum_y = grids.fourier_transform(function=cp.asarray(
                 stepper.saved_array[idx][1, 1:-1, :, 1:-1, :]))
-            UE = grids.inverse_transform_linspace(spectrum=spectrum_x)
-            VE = grids.inverse_transform_linspace(spectrum=spectrum_y)
-            velocity = cp.sqrt(UE ** 2.0 + VE ** 2.0).get()
-            vorticity = grids.inverse_transform_linspace(
+            UE = grids.inverse_transform(spectrum=spectrum_x)
+            VE = grids.inverse_transform(spectrum=spectrum_y)
+            velocity = cp.sqrt(UE ** 2.0 +
+                               VE ** 2.0).get().reshape(grids.x.res * grids.x.order, grids.y.res * grids.y.order)
+            vorticity = grids.inverse_transform(
                 spectrum=(cp.multiply(1j * grids.x.d_wave_numbers[:, None], spectrum_y) -
                           cp.multiply(1j * grids.y.d_wave_numbers[None, :], spectrum_x))
-            ).get()
+            ).get().reshape(grids.x.res * grids.x.order, grids.y.res * grids.y.order)
 
             # plot momentum and vorticity
             m_idx = 0
             ax[m_idx].set_xlim(-self.L / 2, self.L / 2)
             ax[m_idx].set_ylim(-self.L / 2, self.L / 2)
             cb = np.linspace(0, np.amax(velocity), num=100)
-            ax[m_idx].contourf(self.XE, self.YE, velocity, cb, cmap=self.colormap)
+            ax[m_idx].contourf(self.X[self.ng], self.Y[self.ng],
+                               velocity, cb, cmap=self.colormap)
             ax[m_idx].set_title(r'Fluid momentum $|v|(x,y)$')
 
             v_idx = 1
             ax[v_idx].set_xlim(-self.L / 2, self.L / 2)
             ax[v_idx].set_ylim(-self.L / 2, self.L / 2)
             cb_v = np.linspace(np.amin(vorticity), np.amax(vorticity), num=100)
-            ax[v_idx].contourf(self.XE, self.YE, vorticity, cb_v, cmap=self.colormap)
+            ax[v_idx].contourf(self.X[self.ng], self.Y[self.ng],
+                               vorticity, cb_v, cmap=self.colormap)
             ax[v_idx].set_title(r'Fluid vorticity $\zeta(x,y)$')
 
             # set figure title

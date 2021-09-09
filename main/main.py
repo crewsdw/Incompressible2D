@@ -8,7 +8,7 @@ import plotter as my_plt
 
 # Parameters
 order = 8
-res_x, res_y = 50, 50
+res_x, res_y = 50, 50  # 50, 50
 nu = 1.0e-3
 
 # Flags
@@ -37,7 +37,7 @@ write_time = 0.05
 
 # Initialize vector-valued variable
 velocity = g.Vector(resolutions=resolutions_ghosts, orders=orders)
-velocity.initialize(grids=grids, numbers=[1, 2, 3, 4, 5])
+velocity.initialize(grids=grids, numbers=[1, 2, 3])
 
 # Test elliptic class and pressure solve
 elliptic = ell.Elliptic(grids=grids)

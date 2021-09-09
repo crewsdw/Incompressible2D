@@ -45,13 +45,12 @@ class Grid1D:
                                       for i in range(self.res_ghosts)])
 
         if linspace:
-            lin_num = 400
+            lin_num = self.res * self.order
             self.arr_lin = np.linspace(self.low, self.high, num=lin_num)
 
         # spectral coefficients
         if spectrum:
-            self.nyquist_number = 2.0 * self.length // self.dx  # 2.5 *  # mode number of nyquist frequency
-            # print(self.nyquist_number)
+            self.nyquist_number = 2.0 * self.res + 1.0  # 2.0 * self.length // self.dx# mode number of nyquist frequency
             self.k1 = 2.0 * np.pi / self.length  # fundamental mode
             self.wave_numbers = self.k1 * np.arange(1 - self.nyquist_number, self.nyquist_number)
             self.d_wave_numbers = cp.asarray(self.wave_numbers)
@@ -61,8 +60,9 @@ class Grid1D:
                 self.lin_phases = cp.asarray(np.exp(1j * np.tensordot(self.wave_numbers, self.arr_lin, axes=0)))
 
             # Spectral matrices
-            self.spectral_transform = basis.fourier_transform_array(self.midpoints, self.J, self.wave_numbers)
-            self.inverse_transform = basis.inverse_transform_array(self.midpoints, self.J, self.wave_numbers)
+            self.spectral_transform = (self.dx / (2.0 * self.length) *
+                                      basis.fourier_transform_array(self.midpoints, self.J, self.wave_numbers))
+            # self.inverse_transform = basis.inverse_transform_array(self.midpoints, self.J, self.wave_numbers)
 
     def create_grid(self, nodes):
         """
@@ -94,7 +94,7 @@ class Grid1D:
         # print(function.shape)
         # print(self.spectral_transform.shape)
         # quit()
-        return cp.tensordot(function, self.spectral_transform, axes=(idx, [0, 1])) * self.dx / self.length
+        return cp.tensordot(function, self.spectral_transform, axes=(idx, [0, 1]))
 
     def sum_fourier(self, coefficients, idx):
         """

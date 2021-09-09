@@ -93,6 +93,7 @@ class Stepper:
                              dx=grids.x.dx, dy=grids.y.dx)
         self.saved_array += [vector.arr.get()]
         self.saved_times += [self.time]
+        print('Initial timestep is ' + str(self.dt.get()))
         while self.time < self.final_time:
             # Perform RK update
             self.nonlinear_ssp_rk(vector=vector, basis=basis, elliptic=elliptic,

@@ -245,8 +245,14 @@ class Basis1D:
                             sp.spherical_jn(s, np.absolute(wave_numbers) / J) for s in range(self.order)])
 
         # Multiply by inverse Vandermonde transpose for fourier-transformed nodal basis
-        ell_tilde = np.matmul(self.vandermonde_inverse.T, p_tilde)
-
+        ell_tilde = np.matmul(self.vandermonde_inverse.T, p_tilde) * 2.0
+        # ell_tilde = np.multiply(np.array(self.weights)[:, None],
+        #                         np.exp(-1j * np.tensordot(self.nodes, wave_numbers, axes=0) / J))
+        # plt.figure()
+        # for i in range(8):
+        #     plt.plot(wave_numbers, np.absolute(ell_tilde0[i, :]))
+        #     plt.plot(wave_numbers, np.absolute(ell_tilde[i, :]), '--')
+        # plt.show()
         # Outer product with phase factors
         phase = np.exp(-1j * np.tensordot(midpoints, wave_numbers, axes=0))
         transform_array = np.multiply(phase[:, :, None], ell_tilde.T)
