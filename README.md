@@ -16,4 +16,4 @@ Experimental objectives of this project on high-order discontinuous Galerkin met
 2) concisely-coded and efficient GPU implementations,
 
 ### Information
-Implementation notes can be found at: https://students.washington.edu/dcrews/notes/euler_update_aug16.pdf
+Implementation notes can be found at: https://dcrews.gitlab.io/potential-flux/papers/incompressible_euler.pdf
